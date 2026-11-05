@@ -7,6 +7,8 @@ sibling repo `../kamelott-lambda` (GitHub: GuillaumeGSO/kamelott-lambda). It rep
 Goal: PWA first, ready for Google AdSense, later wrapped as a native app (Capacitor + AdMob).
 Character pictures are initials badges on purpose: no Wikipedia photos (copyright risk with ads).
 
+The full approved plan (decisions, architecture, steps, verification) is in `docs/PLAN.md`.
+
 ## Architecture
 
 ```
