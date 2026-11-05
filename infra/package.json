@@ -1,0 +1,16 @@
+{
+  "name": "kaamelott-app-infra",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "cdk": "cdk",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "aws-cdk": "^2.1147.0",
+    "aws-cdk-lib": "^2.275.0",
+    "constructs": "^10.8.1",
+    "tsx": "^4.23.15"
+  }
+}

@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# CDK
+infra/cdk.out
+infra/cdk.context.json
