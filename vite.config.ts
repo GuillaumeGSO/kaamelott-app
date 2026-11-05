@@ -5,11 +5,20 @@ import { defineConfig, loadEnv } from 'vite'
 const API_PATHS = ['/quotes', '/characters', '/favorites']
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   // Read without the VITE_ prefix filter: these values stay in the dev server and are
-  // never exposed to the bundle (only VITE_* variables are).
+  // never exposed to the bundle (only VITE_* variables are). Set them in .env (see .env.example).
   const env = loadEnv(mode, process.cwd(), '')
-  const target = env.KAAMELOTT_API_URL ?? 'https://<api-id>.execute-api.eu-west-3.amazonaws.com/staging'
+  if (command === 'serve' && mode !== 'test') {
+    const missing = ['KAAMELOTT_API_URL', 'KAAMELOTT_API_KEY'].filter(name => !env[name])
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing ${missing.join(' and ')} for the dev server proxy. ` +
+          'Copy .env.example to .env and fill it in (the file says where to find each value).',
+      )
+    }
+  }
+  const target = env.KAAMELOTT_API_URL
 
   return {
     plugins: [react()],

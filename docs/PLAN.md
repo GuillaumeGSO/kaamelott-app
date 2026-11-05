@@ -58,7 +58,7 @@ kaamelott-app/
 
 **Infra (infra/, CDK, deployed to account 022153972216, eu-west-3):**
 - A private S3 bucket and a CloudFront distribution with Origin Access Control. Default behavior goes to S3, with the SPA fallback (403/404 → `/index.html`).
-- API behaviors (`/quotes/*`, `/characters`, `/favorites`, `/favorites/*`) go to `<api-id>.execute-api.eu-west-3.amazonaws.com`, origin path `/staging`, with `CachingDisabled` and `AllViewerExceptHostHeader`. All methods are allowed (POST is needed). The custom header `x-api-key` comes from `{{resolve:secretsmanager:kaamelott-web-api-key-staging}}`. The API ID and stage come from cdk context per env.
+- API behaviors (`/quotes/*`, `/characters`, `/favorites`, `/favorites/*`) go to the `kaamelott-api-staging` REST API host, origin path `/staging`, with `CachingDisabled` and `AllViewerExceptHostHeader`. All methods are allowed (POST is needed). The custom header `x-api-key` comes from `{{resolve:secretsmanager:kaamelott-web-api-key-staging}}`. The API host is looked up by name (`kaamelott-api-<env>`) at synth time, so no URL is committed.
 - `BucketDeployment` uploads `dist/` and invalidates `/*`.
 - Domain later: an optional `domainName` context, plus an ACM certificate in us-east-1 and a Route 53 alias. Not built now.
 
@@ -71,7 +71,7 @@ kaamelott-app/
 1. ✅ Part A in `kamelott-lambda` (branch, PR, deploy staging). Check that a request with the web key returns 200. *Done: PR #4 (branch `web-api-key`), deployed to staging, 200 with the key and 403 without. **Not merged yet.***
 2. ✅ Scaffold in `/Users/guillaume/Repositories/kaamelott-app` (Vite + React + TS, API client, quote queue, tests), `git init`, first commit, then `gh repo create` (public) and push.
 3. ✅ Build the UI (feature parity), with initials badges (no blason: it's not ours either) and responsive layout; checked at phone width against staging.
-4. ⏳ Infra stack (*written in `infra/`, typechecks and synthesizes; not deployed yet*), then the first deploy from local with `--profile kaamelott`. Check the CloudFront URL on a phone.
+4. ⏳ Infra stack (*written in `infra/`, typechecks and synthesizes; not deployed yet*), then the first deploy from local with `AWS_PROFILE=kaamelott`. Check the CloudFront URL on a phone.
 5. CI workflows, plus the IAM role (you run it), then a deploy-staging run from GitHub.
 6. PWA manifest and service worker, `<AdSlot>` placeholders, privacy page.
 7. **Later, needs you:** buy or choose a domain, wire it up, apply to AdSense, enable the consent message. Then prod (frontend `env=prod` → prod API, after the prod quote promotion). Then the Capacitor native app with AdMob.

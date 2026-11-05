@@ -28,7 +28,9 @@ browser ──► CloudFront (infra/, one distribution per env)
 
 - Account `kaamelott` 022153972216, region eu-west-3, local profile `kaamelott`
   (SSO session `org`; run `aws sso login --sso-session org` when the token expires).
-- API Gateway: staging `<api-id>…/staging`, prod `<api-id>…/prod` (see `infra/bin/app.ts`).
+- API Gateway: REST APIs `kaamelott-api-<env>`, stage `<env>`. No API URL is committed (code,
+  docs, `.env.example`): `infra/bin/app.ts` looks the API up by name at synth time (needs AWS
+  credentials), and the dev server reads `KAAMELOTT_API_URL` from the gitignored `.env`.
 - The account is CDK-bootstrapped. The GitHub OIDC provider already exists.
 - Prod API still has the old quotes (`actor` instead of `actorName`, no YouTube fields) until the
   user promotes them. Don't deploy the frontend to prod before that, and don't promote prod
@@ -48,7 +50,8 @@ Done:
 
 Next steps:
 4. First deploy from local: `npm run build`, then in `infra/`:
-   `npx cdk deploy --context env=staging --profile kaamelott`. Check the SiteUrl output:
+   `AWS_PROFILE=kaamelott npx cdk deploy --context env=staging` (not `--profile`: it isn't
+   passed on to the CDK app, which needs credentials to look up the API). Check the SiteUrl output:
    page loads, `curl <url>/characters` returns 200 without a key, `grep -r x-api-key dist/` is empty,
    and a 404 from `/quotes/by-favorites` stays JSON (not HTML).
 5. CI: `.github/workflows/test.yml` (on every push: `npm ci`, lint, test, build) and

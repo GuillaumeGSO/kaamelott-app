@@ -17,14 +17,11 @@ Prerequisites: Node.js 24+, and the AWS CLI with the `kaamelott` SSO profile (to
 
 ```bash
 npm install
-
-# Start against the staging API (the key stays in the dev server, never in the bundle)
-KAAMELOTT_API_KEY=$(aws secretsmanager get-secret-value \
-  --secret-id kaamelott-web-api-key-staging --profile kaamelott --region eu-west-3 \
-  --query SecretString --output text) npm run dev
+cp .env.example .env   # then fill in KAAMELOTT_API_URL and KAAMELOTT_API_KEY (the file says how)
+npm run dev
 ```
 
-Set `KAAMELOTT_API_URL` to target another API stage (default: staging).
+`.env` is gitignored and holds the API URL and key: neither is committed. Its variables have no `VITE_` prefix, so they stay in the dev server and never reach the bundle.
 
 ```bash
 npm test        # Vitest + Testing Library
