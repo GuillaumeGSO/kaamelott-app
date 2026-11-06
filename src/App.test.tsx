@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import App from './App';
@@ -41,16 +41,44 @@ beforeEach(() => {
   });
 });
 
+// The filters, pseudo and theme live in the preferences sheet.
+const openPreferences = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: 'Préférences' }));
+  return screen.getByRole('dialog', { name: 'Préférences' });
+};
+
 const calls = (path: string) =>
   fetchSpy.mock.calls.filter(([input]: [RequestInfo | URL]) => String(input).startsWith(path)).length;
 
 describe('App', () => {
   test('shows a first quote and the character list', async () => {
+    const user = userEvent.setup();
     render(<App />);
 
     expect(await screen.findByText('Citation q1')).toBeInTheDocument();
     expect(screen.getByText('Franck Pitiot')).toBeInTheDocument();
-    expect(await screen.findByRole('option', { name: 'Perceval (3)' })).toBeInTheDocument();
+    expect(screen.getByText('Livre I · La Quête')).toBeInTheDocument();
+
+    const sheet = await openPreferences(user);
+    expect(await within(sheet).findByRole('radio', { name: 'Perceval, 3 citations' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('radio', { name: 'Tous les personnages' })).toBeChecked();
+  });
+
+  test('finds a character by a part of the name, accents ignored', async () => {
+    const user = userEvent.setup();
+    routes['GET /characters'] = () =>
+      json(200, [
+        { character: 'Arthur', numberOfQuotes: 2 },
+        { character: 'Léodagan', numberOfQuotes: 3 },
+      ]);
+    render(<App />);
+    const sheet = await openPreferences(user);
+    await within(sheet).findByRole('radio', { name: 'Arthur, 2 citations' });
+
+    await user.type(within(sheet).getByRole('searchbox', { name: 'Chercher un personnage' }), 'leo');
+
+    expect(within(sheet).getByRole('radio', { name: 'Léodagan, 3 citations' })).toBeInTheDocument();
+    expect(within(sheet).queryByRole('radio', { name: 'Arthur, 2 citations' })).not.toBeInTheDocument();
   });
 
   test('"Encore une !" serves the next queued quote without a new random fetch', async () => {
@@ -84,7 +112,9 @@ describe('App', () => {
     render(<App />);
     await screen.findByText('Citation q1');
 
-    await user.type(screen.getByLabelText('Pseudo'), 'merlin');
+    const sheet = await openPreferences(user);
+    await user.type(within(sheet).getByLabelText('Pseudo'), 'merlin');
+    await user.click(within(sheet).getByRole('button', { name: 'Voir les citations' }));
     await user.click(screen.getByRole('button', { name: 'Ajouter aux favoris' }));
 
     const like = await screen.findByRole('button', { name: 'Retirer des favoris' });
@@ -101,17 +131,46 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'Retirer des favoris' })).toBeInTheDocument();
   });
 
-  test('uses the character endpoint when a character is selected', async () => {
+  test('picking a character fetches one of their quotes when the sheet closes', async () => {
     const user = userEvent.setup();
     routes['GET /quotes/by-character/Arthur'] = () => json(200, quote('a1', { character: 'Arthur', text: 'Arthur parle' }));
     render(<App />);
-    await screen.findByRole('option', { name: 'Arthur (2)' });
+    await screen.findByText('Citation q1');
+    const sheet = await openPreferences(user);
 
-    await user.selectOptions(screen.getByLabelText('Personnage'), 'Arthur');
-    await user.click(screen.getByRole('button', { name: 'Encore une !' }));
+    await user.click(await within(sheet).findByRole('radio', { name: 'Arthur, 2 citations' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Voir les citations' }));
 
     const card = await screen.findByRole('article');
     expect(await within(card).findByText('Arthur parle')).toBeInTheDocument();
+    expect(screen.getByText('Arthur', { selector: '.app-subtitle' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  test('closing the sheet without changing the filters keeps the quote', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Citation q1');
+    const sheet = await openPreferences(user);
+
+    await user.click(within(sheet).getByRole('button', { name: 'Voir les citations' }));
+
+    expect(screen.getByText('Citation q1')).toBeInTheDocument();
+  });
+
+  test('forces night or day and remembers the choice', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const sheet = await openPreferences(user);
+    expect(within(sheet).getByRole('radio', { name: 'Auto' })).toBeChecked();
+
+    await user.click(within(sheet).getByRole('radio', { name: 'Nuit' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(localStorage.getItem('kaamelott.theme')).toBe('dark');
+
+    await user.click(within(sheet).getByRole('radio', { name: 'Auto' }));
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+    expect(localStorage.getItem('kaamelott.theme')).toBeNull();
   });
 
   test('says nothing was found when favorites are empty', async () => {
@@ -120,10 +179,55 @@ describe('App', () => {
     render(<App />);
     await screen.findByText('Citation q1');
 
-    await user.click(screen.getByLabelText('Seulement les favoris'));
-    await user.click(screen.getByRole('button', { name: 'Encore une !' }));
+    const sheet = await openPreferences(user);
+    await user.click(within(sheet).getByRole('switch', { name: 'Seulement les favoris de tout le monde' }));
+    await user.click(within(sheet).getByRole('button', { name: 'Voir les citations' }));
 
     expect(await screen.findByText('Rien trouvé, désolé.')).toBeInTheDocument();
+  });
+
+  test('shows the official teaser or trailer for a film quote', async () => {
+    routes['GET /quotes/random'] = () =>
+      json(200, {
+        quotes: [
+          quote('f1', { film: 'Kaamelott premier volet (2021)', season: null, episode: null }),
+          quote('f2', { film: 'Kaamelott – Deuxième Volet (partie 1)', season: null, episode: null }),
+        ],
+      });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Citation f1');
+
+    expect(screen.getByText('Kaamelott premier volet (2021)')).toBeInTheDocument();
+    const teaser = screen.getByRole('button', { name: 'Voir le teaser' });
+    expect(teaser.querySelector('img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/RtvMQ6lcLzg/mqdefault.jpg');
+
+    await user.click(screen.getByRole('button', { name: 'Encore une !' }));
+    await screen.findByText('Citation f2');
+    const trailer = screen.getByRole('button', { name: 'Voir la bande-annonce' });
+    expect(trailer.querySelector('img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/zs7TXGSXQfE/mqdefault.jpg');
+  });
+
+  test('falls back to a plain button when the clip has no thumbnail', async () => {
+    routes['GET /quotes/random'] = () =>
+      json(200, { quotes: [quote('q1', { youtubeVideoId: 'abc123', youtubeStartSeconds: 42 })] });
+    render(<App />);
+    await screen.findByText('Citation q1');
+
+    fireEvent.error(screen.getByRole('button', { name: "Voir l'extrait" }).querySelector('img')!);
+
+    const button = screen.getByRole('button', { name: "Voir l'extrait" });
+    expect(button.querySelector('img')).toBeNull();
+  });
+
+  test('credits Wikiquote and its license', async () => {
+    render(<App />);
+
+    expect(screen.getByRole('link', { name: 'Wikiquote' })).toHaveAttribute('href', 'https://fr.wikiquote.org/wiki/Kaamelott');
+    expect(screen.getByRole('link', { name: 'CC BY-SA 4.0' })).toHaveAttribute(
+      'href',
+      'https://creativecommons.org/licenses/by-sa/4.0/deed.fr',
+    );
   });
 
   test('shows an error when the API is unreachable', async () => {
@@ -141,7 +245,9 @@ describe('App', () => {
     await screen.findByText('Citation q1');
 
     expect(screen.queryByTitle('Extrait vidéo de la citation')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: "▶ Voir l'extrait" }));
+    const thumbnail = screen.getByRole('button', { name: "Voir l'extrait" }).querySelector('img');
+    expect(thumbnail).toHaveAttribute('src', 'https://i.ytimg.com/vi/abc123/mqdefault.jpg');
+    await user.click(screen.getByRole('button', { name: "Voir l'extrait" }));
 
     const iframe = screen.getByTitle('Extrait vidéo de la citation');
     expect(iframe.getAttribute('src')).toContain('youtube-nocookie.com/embed/abc123?start=42');

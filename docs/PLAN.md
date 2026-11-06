@@ -3,7 +3,7 @@
 > Plan approved on 2026-11-05. Progress is marked in **Order of work** (✅ done, ⏳ in progress). Implementation notes and gotchas are in `CLAUDE.md`.
 
 ## Context
-Today's frontend is an Anvil app ("Kamelott Citations", app YOJZWX7ZCPQGTC6I). It isn't phone-friendly and can't carry Google ads. The goal is a new public repo, **GuillaumeGSO/kaamelott-app**, holding a web frontend that is mobile-first and installable (PWA) and ready for Google AdSense. It's hosted in the `kaamelott` AWS account (022153972216, eu-west-3) and calls the existing API from `kamelott-lambda`. It should be web first and wrappable as a native app (Capacitor + AdMob) later.
+Today's frontend is an Anvil app ("Kaamelott Citations", app YOJZWX7ZCPQGTC6I). It isn't phone-friendly and can't carry Google ads. The goal is a new public repo, **GuillaumeGSO/kaamelott-app**, holding a web frontend that is mobile-first and installable (PWA) and ready for Google AdSense. It's hosted in the `kaamelott` AWS account (022153972216, eu-west-3) and calls the existing API from `kaamelott-lambda`. It should be web first and wrappable as a native app (Capacitor + AdMob) later.
 
 Decisions taken: PWA first, native later · domain decided later (needed before applying to AdSense) · **CloudFront adds the API key server-side** · blason/initials instead of Wikipedia photos · Vite + React + TypeScript.
 
@@ -27,7 +27,7 @@ phone browser ──► CloudFront (one distribution, staging)
 - Same origin for the site and the API: no CORS, no key in the JS bundle.
 - **The key:** a dedicated "web" API key for the site, separate from the Anvil key, so it can be revoked on its own.
 
-## Part A — small change in `kamelott-lambda` (backend repo)
+## Part A — small change in `kaamelott-lambda` (backend repo)
 In `lib/kaamelott-stack.ts`:
 - Add a Secrets Manager secret `kaamelott-web-api-key-<env>` with a generated 40-character value, no punctuation.
 - Add an `ApiKey` `kaamelott-web-<env>` whose value is that secret, plus a dedicated `UsagePlan` `kaamelott-web-usage-plan-<env>`. Starting point: quota 50,000/day, throttle rate 20 req/s, burst 40. The existing key and plan stay unchanged for Anvil.
@@ -36,7 +36,7 @@ In `lib/kaamelott-stack.ts`:
 - Tests: none exist for the CDK stack (Jest only covers `lambdas/`), so check with `cdk synth` and the deploy.
 
 ## Part B — new repo `kaamelott-app`
-Local path: **`/Users/guillaume/Repositories/kaamelott-app`**, next to `kamelott-lambda` (the path is currently free). Remote: `github.com/GuillaumeGSO/kaamelott-app` (public), created with `gh repo create GuillaumeGSO/kaamelott-app --public --source . --push` after the first commit.
+Local path: **`/Users/guillaume/Repositories/kaamelott-app`**, next to `kaamelott-lambda` (the path is currently free). Remote: `github.com/GuillaumeGSO/kaamelott-app` (public), created with `gh repo create GuillaumeGSO/kaamelott-app --public --source . --push` after the first commit.
 
 Layout:
 ```
@@ -52,6 +52,7 @@ kaamelott-app/
 - `api/client.ts`: `getCharacters`, `getRandomQuotes(batchSize)`, `getQuoteByCharacter`, `getQuoteByFavorites(alias?, character?)`, `getFavoriteStatus`, `postFavorite`. The `Quote` type matches the API (`actorName`, `youtubeVideoId|null`, `youtubeStartSeconds|null`, `likes`).
 - **Quote queue:** keeps up to 20 random quotes from `batchSize=20` and refills when 5 or fewer are left, so "Encore une !" is instant. This replaces Anvil's server-side cache. Character and favorites modes call the API for each quote.
 - **Screens:** one mobile-first page. The quote card shows the text, character, actor, film/season/episode, a like heart with its count, a "Voir l'extrait" button that loads a `youtube-nocookie.com/embed/<id>?start=<s>` iframe on tap only (light page, nothing loaded from YouTube before then), and the blason or a character initial. Filters (character select, pseudo, favorites toggle) sit in a collapsible top bar. The pseudo is remembered in `localStorage`.
+  *Since redesigned ("Parchemin", 2026-11-06): the filters, the pseudo and a day/night choice moved to a bottom sheet opened from a single header button; see Design in `CLAUDE.md`.*
 - **Ads:** an `<AdSlot>` component that renders a placeholder until AdSense is configured (publisher ID via the `VITE_ADSENSE_CLIENT` build var, empty means no ads). No ad script loads before consent. A `/confidentialite` page (privacy policy) is required by AdSense. The consent banner is the CMP built into AdSense, enabled once the account exists.
 - **PWA:** `vite-plugin-pwa` with a manifest (name, icons, theme color) and a service worker caching only the app shell, never API responses.
 - **Tests:** Vitest + Testing Library for the API client (mocked fetch), the quote queue logic and the main interactions (next quote, like without pseudo, empty favorites).
@@ -63,14 +64,15 @@ kaamelott-app/
 - Domain later: an optional `domainName` context, plus an ACM certificate in us-east-1 and a Route 53 alias. Not built now.
 
 **CI:**
-- `test.yml`: on every push, run `npm ci`, lint, `npm test`, `npm run build` (Node 24). Same pattern as `kamelott-lambda/.github/workflows/test.yml`.
-- `deploy-staging.yml`: manual, `environment: staging`, OIDC. Builds the app, then `cdk deploy`. Same pattern as `kamelott-lambda/.github/workflows/deploy-staging.yml`.
+- `test.yml`: on every push, run `npm ci`, lint, `npm test`, `npm run build` (Node 24). Same pattern as `kaamelott-lambda/.github/workflows/test.yml`.
+- `deploy-staging.yml`: manual, `environment: staging`, OIDC. Builds the app, then `cdk deploy`. Same pattern as `kaamelott-lambda/.github/workflows/deploy-staging.yml`.
 - **IAM:** needs a new role `kaamelott-app-github-deploy-staging`, trusted only for `repo:GuillaumeGSO/kaamelott-app:environment:staging`. It can assume the CDK bootstrap roles (the account is already bootstrapped) and read the web key secret for the CloudFormation dynamic reference. The GitHub OIDC provider already exists. Auto mode blocks permission grants, so **you run the role creation command**, which I'll prepare as before.
 
 ## Order of work
-1. ✅ Part A in `kamelott-lambda` (branch, PR, deploy staging). Check that a request with the web key returns 200. *Done: PR #4 (branch `web-api-key`), deployed to staging, 200 with the key and 403 without. **Not merged yet.***
+1. ✅ Part A in `kaamelott-lambda` (branch, PR, deploy staging). Check that a request with the web key returns 200. *Done: PR #4 (branch `web-api-key`), deployed to staging, 200 with the key and 403 without. **Not merged yet.***
 2. ✅ Scaffold in `/Users/guillaume/Repositories/kaamelott-app` (Vite + React + TS, API client, quote queue, tests), `git init`, first commit, then `gh repo create` (public) and push.
 3. ✅ Build the UI (feature parity), with initials badges (no blason: it's not ours either) and responsive layout; checked at phone width against staging.
+   ⏳ Parchemin redesign (day and night themes, preferences sheet), chosen on a Claude Design canvas. *PR #1 (branch `parchemin-design`).*
 4. ⏳ Infra stack (*written in `infra/`, typechecks and synthesizes; not deployed yet*), then the first deploy from local with `AWS_PROFILE=kaamelott`. Check the CloudFront URL on a phone.
 5. CI workflows, plus the IAM role (you run it), then a deploy-staging run from GitHub.
 6. PWA manifest and service worker, `<AdSlot>` placeholders, privacy page.
@@ -79,6 +81,6 @@ kaamelott-app/
 ## Verification
 - `npm test` and `npm run build` pass locally and in GitHub Actions.
 - `curl https://<cloudfront>/characters` returns 200 **without** any key; the response headers and the JS bundle contain no `x-api-key` (grep `dist/`).
-- **In Chrome at phone size** (Claude in Chrome): first quote shows, "Encore une !" is instant (queue), the character filter works, setting a pseudo and liking toggles the heart and the count, the favorites filter returns the liked quote, and "Voir l'extrait" opens YouTube at the right second.
+- **In Chrome at phone size** (Claude in Chrome): first quote shows, "Encore une !" is instant (queue), the character filter works (search included), day/night follows the phone and the Apparence choice, setting a pseudo and liking toggles the heart and the count, the favorites filter returns the liked quote, and "Voir l'extrait" opens YouTube at the right second.
 - **Lighthouse (mobile):** PWA installable, performance acceptable.
 - Usage plan metrics in API Gateway show traffic on `kaamelott-web-staging`, not on the Anvil key.
