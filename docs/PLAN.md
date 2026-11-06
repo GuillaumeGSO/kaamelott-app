@@ -72,7 +72,7 @@ kaamelott-app/
 1. ✅ Part A in `kaamelott-lambda` (branch, PR, deploy staging). Check that a request with the web key returns 200. *Done: PR #4 (branch `web-api-key`), deployed to staging, 200 with the key and 403 without. **Not merged yet.***
 2. ✅ Scaffold in `/Users/guillaume/Repositories/kaamelott-app` (Vite + React + TS, API client, quote queue, tests), `git init`, first commit, then `gh repo create` (public) and push.
 3. ✅ Build the UI (feature parity), with initials badges (no blason: it's not ours either) and responsive layout; checked at phone width against staging.
-   ⏳ Parchemin redesign (day and night themes, preferences sheet), chosen on a Claude Design canvas. *On branch `parchemin-design`, being tested by you; not committed yet.*
+   ⏳ Parchemin redesign (day and night themes, preferences sheet), chosen on a Claude Design canvas. *PR #1 (branch `parchemin-design`).*
 4. ⏳ Infra stack (*written in `infra/`, typechecks and synthesizes; not deployed yet*), then the first deploy from local with `AWS_PROFILE=kaamelott`. Check the CloudFront URL on a phone.
 5. CI workflows, plus the IAM role (you run it), then a deploy-staging run from GitHub.
 6. PWA manifest and service worker, `<AdSlot>` placeholders, privacy page.

@@ -72,8 +72,9 @@ Done:
    Checked in Chrome at phone width against staging: quotes, filters, like/unlike,
    favorites, "Rien trouvé".
 3. `infra/` CDK stack written (`infra/lib/web-stack.ts`), typechecks and synthesizes. **Not deployed yet.**
-3b. Parchemin redesign (see Design) on branch `parchemin-design`, **not committed yet**: the user is
-   testing it. 26 tests; checked in Chrome at phone width against staging, both themes.
+3b. Parchemin redesign (see Design), branch `parchemin-design`, **PR #1 open**. 29 tests; checked in
+   Chrome at phone width against staging, both themes. GitHub `main` was force-pushed (2026-11-06) to
+   the clean local history: no published commit contains the API URL any more.
 
 Next steps:
 4. First deploy from local: `npm run build`, then in `infra/`:
