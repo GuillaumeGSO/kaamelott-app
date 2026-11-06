@@ -1,0 +1,48 @@
+name: Deploy staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC token for AWS
+  contents: read
+
+concurrency: deploy-staging
+
+env:
+  AWS_REGION: eu-west-3
+  AWS_ROLE_ARN: arn:aws:iam::022153972216:role/kaamelott-app-github-deploy-staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging # the AWS role only trusts this environment
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            infra/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm test
+
+      - run: npm run build # the stack uploads dist/
+
+      - run: npm ci
+        working-directory: infra
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: npx cdk deploy kaamelott-app-staging --context env=staging --require-approval never
+        working-directory: infra

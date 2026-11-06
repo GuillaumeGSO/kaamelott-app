@@ -30,3 +30,23 @@ npm test        # Vitest + Testing Library
 npm run lint    # oxlint
 npm run build   # type-check and production build in dist/
 ```
+
+## Deploy
+
+The site is a CDK stack in `infra/` (its own npm package): a private S3 bucket behind CloudFront, which also forwards the API paths with the key. One stack per environment, `kaamelott-app-<env>`.
+
+### Staging from GitHub
+
+Actions → **Deploy staging** → **Run workflow** runs lint, tests and build, then `cdk deploy kaamelott-app-staging`. Every push also runs the **Tests** workflow (lint, tests, build, infra typecheck).
+
+The workflow authenticates with GitHub OIDC (no stored AWS keys). It assumes the `kaamelott-app-github-deploy-staging` IAM role, which trusts only this repo's `staging` GitHub environment and may only use the CDK bootstrap roles and list the REST APIs (to find `kaamelott-api-<env>` by name).
+
+### From your machine
+
+```bash
+npm run build
+cd infra && npm install
+AWS_PROFILE=kaamelott npx cdk deploy --context env=staging
+```
+
+Use `AWS_PROFILE`, not `--profile`: the CDK app looks the API up by name and `--profile` isn't passed on to it. Prod waits until its quotes are promoted (see `kaamelott-lambda`).
