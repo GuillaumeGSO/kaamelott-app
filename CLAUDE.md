@@ -24,6 +24,31 @@ browser ──► CloudFront (infra/, one distribution per env)
 - Don't use CloudFront custom error responses for SPA routing: they would also turn the API's
   404s ("no favorites found") into index.html. The CloudFront Function handles it instead.
 
+## Design (Parchemin)
+
+Chosen with the user on a Claude Design canvas: https://claude.ai/artifact/3qLd1T6gawMww9so1RsPSY
+(the green "Décisions retenues" sticky lists the decisions). Day = parchment, serif, oxblood;
+night = warm near-black, brick red.
+- All colors are tokens in `src/index.css`. Night tokens are written twice on purpose: under
+  `prefers-color-scheme: dark` (unless `data-theme="light"`) and under `[data-theme="dark"]`.
+- Day/night: `src/theme.ts` ("auto" follows the phone; "light"/"dark" set `data-theme` on `<html>`,
+  stored as `kaamelott.theme`). An inline script in `index.html` applies it before first paint: allow
+  it if a Content Security Policy is ever added.
+- Header has one button, opening `src/components/Preferences.tsx`: a native `<dialog>` bottom sheet
+  with character search (most quoted first), pseudo, favorites switch and Apparence (Auto/Jour/Nuit).
+  Closing it fetches a new quote only if the character or favorites filter changed.
+- Character badges use a fixed 6-color palette per theme (`--badge-0..5`), never random hues and never
+  the accent: other hues clash with the parchment.
+- The footer credits Wikiquote (source of the quotes, CC BY-SA 4.0: source link + license link are
+  required). Keep it on every screen, including a future native app.
+- No photos of the actors or stills from the show (copyright, actors' image rights, ads = commercial use).
+- Pictures come only from official YouTube uploads: a quote's clip (official Kaamelott channel) shows
+  its thumbnail (`i.ytimg.com/vi/<id>/mqdefault.jpg`, player loaded on tap). Film quotes have no clip:
+  `TRAILERS` in `src/components/QuoteCard.tsx` maps a film to its trailer, from @KaamelottOfficiel only
+  (the user's rule): Premier Volet has only a teaser there. No change needed in kamelott-lambda.
+- Fonts (Cormorant Garamond, Source Sans 3) are self-hosted with `@fontsource`, latin subset: no
+  request to Google Fonts (privacy, ad consent).
+
 ## AWS
 
 - Account `kaamelott` 022153972216, region eu-west-3, local profile `kaamelott`
@@ -36,7 +61,7 @@ browser ──► CloudFront (infra/, one distribution per env)
   user promotes them. Don't deploy the frontend to prod before that, and don't promote prod
   quotes without the user's go-ahead.
 
-## Status (2026-11-05)
+## Status (2026-11-06)
 
 Done:
 1. kamelott-lambda branch `web-api-key`, **PR #4 open**: web API key + secret + usage plan.
@@ -47,6 +72,8 @@ Done:
    Checked in Chrome at phone width against staging: quotes, filters, like/unlike,
    favorites, "Rien trouvé".
 3. `infra/` CDK stack written (`infra/lib/web-stack.ts`), typechecks and synthesizes. **Not deployed yet.**
+3b. Parchemin redesign (see Design) on branch `parchemin-design`, **not committed yet**: the user is
+   testing it. 26 tests; checked in Chrome at phone width against staging, both themes.
 
 Next steps:
 4. First deploy from local: `npm run build`, then in `infra/`:
@@ -75,4 +102,6 @@ Next steps:
 - The Chrome window can't be resized (full screen). To test at phone width, load the app in a
   390px-wide iframe on the same origin.
 - Like/unlike tests against staging write real favorites: use a test pseudo and remove the like.
+- jsdom has `<dialog>` but no `showModal`/`close`: `src/test/setup.ts` adds minimal versions.
+- The user may already have a dev server on port 5173: use another port, don't kill theirs.
 - Commit messages end with the Co-Authored-By line; the user approves commits and pushes.

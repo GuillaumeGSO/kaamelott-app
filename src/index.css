@@ -1,31 +1,96 @@
+/* Parchemin theme. Design reference: the "Kaamelott Citations — UX directions" canvas.
+   Day tokens on :root; night tokens apply when the phone is dark (unless the user forced
+   day) or when the user forced night. src/theme.ts sets data-theme. */
 :root {
-  --bg: #f6f1e7;
-  --surface: #fffaf0;
+  --bg: #f4ecdc;
+  --surface: #fbf6ea;
+  --surface-selected: #f3e6cf;
+  --input-bg: #ffffff;
   --text: #2b2118;
-  --muted: #6b5d4f;
-  --border: #e2d6c3;
+  --muted: #6b5b48;
+  --border: #d9cbb0;
+  --control-border: #cdbb98;
+  --ornament: #b9a47c;
   --accent: #8c2f1b;
-  --accent-text: #fffaf0;
-  --gold: #b8862b;
+  --accent-text: #ffffff;
+  --accent-ink: #8c2f1b;
+  --backdrop: rgb(43 33 24 / 45%);
+  --card-shadow: 0 1px 0 #e6d9bf, 0 12px 24px -16px rgb(43 33 24 / 35%);
 
-  color-scheme: light dark;
-  font: 17px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Character badges: earth tones only, so they sit with the parchment (never the accent). */
+  --badge-text: #ffffff;
+  --badge-0: #7a5a1e;
+  --badge-1: #5a3a22;
+  --badge-2: #6b2e3a;
+  --badge-3: #4a3b2e;
+  --badge-4: #8a3f1c;
+  --badge-5: #5c5427;
+
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-body: 'Source Sans 3', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  color-scheme: light;
+  font: 1rem/1.5 var(--font-body);
   color: var(--text);
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #17120e;
-    --surface: #221b15;
-    --text: #f1e8da;
-    --muted: #b5a690;
-    --border: #3a2f25;
-    --accent: #c4552f;
-    --accent-text: #fffaf0;
-    --gold: #d9a441;
+  :root:not([data-theme='light']) {
+    --bg: #1c1712;
+    --surface: #26201a;
+    --surface-selected: #332a21;
+    --input-bg: #1c1712;
+    --text: #ede3d1;
+    --muted: #b3a48c;
+    --border: #3d3329;
+    --control-border: #4a3e31;
+    --ornament: #8a7658;
+    --accent: #b5452b;
+    --accent-text: #ffffff;
+    --accent-ink: #d98a6e;
+    --backdrop: rgb(0 0 0 / 60%);
+    --card-shadow: 0 12px 28px -14px rgb(0 0 0 / 70%);
+
+    --badge-text: #fff7e8;
+    --badge-0: #8a6626;
+    --badge-1: #6e4a2c;
+    --badge-2: #7a3644;
+    --badge-3: #5c4a38;
+    --badge-4: #9a4e26;
+    --badge-5: #6e6530;
+
+    color-scheme: dark;
   }
+}
+
+/* Same values as above, for a forced night on a phone set to day. */
+:root[data-theme='dark'] {
+  --bg: #1c1712;
+  --surface: #26201a;
+  --surface-selected: #332a21;
+  --input-bg: #1c1712;
+  --text: #ede3d1;
+  --muted: #b3a48c;
+  --border: #3d3329;
+  --control-border: #4a3e31;
+  --ornament: #8a7658;
+  --accent: #b5452b;
+  --accent-text: #ffffff;
+  --accent-ink: #d98a6e;
+  --backdrop: rgb(0 0 0 / 60%);
+  --card-shadow: 0 12px 28px -14px rgb(0 0 0 / 70%);
+
+  --badge-text: #fff7e8;
+  --badge-0: #8a6626;
+  --badge-1: #6e4a2c;
+  --badge-2: #7a3644;
+  --badge-3: #5c4a38;
+  --badge-4: #9a4e26;
+  --badge-5: #6e6530;
+
+  color-scheme: dark;
 }
 
 * {
@@ -38,103 +103,87 @@ body {
 }
 
 button,
-input,
-select {
+input {
   font: inherit;
+  color: inherit;
 }
 
-.app {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 0 1rem calc(2rem + env(safe-area-inset-bottom));
-}
-
-.app-header h1 {
-  margin: 0;
-  padding: 1rem 0 0.75rem;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.6rem;
-  color: var(--accent);
-  text-align: center;
-}
-
-/* Filters: collapsed by default on phones */
-.filters {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-}
-
-.filters summary {
-  padding: 0.75rem 1rem;
+button {
   cursor: pointer;
-  font-weight: 600;
 }
 
-.filters-active {
-  font-weight: 400;
-  color: var(--muted);
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
 }
 
-.filters-body {
-  display: grid;
-  gap: 0.75rem;
-  padding: 0 1rem 1rem;
+/* Layout: header, card, then "Encore une !" pinned to the bottom of the screen. */
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-height: 100dvh;
+  max-width: 30rem;
+  margin: 0 auto;
+  padding: calc(1.25rem + env(safe-area-inset-top)) 1.25rem calc(1.75rem + env(safe-area-inset-bottom));
 }
 
-.filters label {
-  display: grid;
-  gap: 0.25rem;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.filters select,
-.filters input[type='text'] {
-  width: 100%;
-  min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-}
-
-.filters .checkbox {
+.app-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  min-height: 2.75rem;
-  color: var(--text);
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.filters .checkbox input {
-  width: 1.25rem;
-  height: 1.25rem;
-  accent-color: var(--accent);
+.app-title {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.app-title h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.625rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.app-subtitle,
+.label {
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.app-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label {
+  font-weight: 700;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
 }
 
 .app-main {
   display: grid;
   gap: 1rem;
-  margin-top: 1rem;
-}
-
-.next-button {
-  justify-self: center;
-  min-height: 3rem;
-  padding: 0 2rem;
-  color: var(--accent-text);
-  background: var(--accent);
-  border: 0;
-  border-radius: 999px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.next-button:disabled {
-  opacity: 0.6;
-  cursor: progress;
 }
 
 .status,
@@ -145,16 +194,57 @@ select {
 }
 
 .notice {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
+.primary-button {
+  min-height: 3.5rem;
+  padding: 0 1.5rem;
+  color: var(--accent-text);
+  background: var(--accent);
+  border: 0;
+  border-radius: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.375rem;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px -8px rgb(0 0 0 / 50%);
+}
+
+/* Stays within thumb reach when a long quote makes the page scroll. */
+.next-button {
+  position: sticky;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  margin-top: auto;
+}
+
+.next-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Sits under the pinned button, so it shows at the end of the page and never covers the quote. */
+.credits {
+  margin-top: -0.25rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.credits a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
+/* Quote card */
 .quote-card {
   display: grid;
-  gap: 1rem;
-  padding: 1.25rem;
+  gap: 1.125rem;
+  padding: 1.5rem 1.5rem 1.25rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: 6px;
+  box-shadow: var(--card-shadow);
   transition: opacity 0.15s;
 }
 
@@ -162,12 +252,38 @@ select {
   opacity: 0.5;
 }
 
+.quote-mark {
+  height: 1.75rem;
+  font-family: var(--font-display);
+  font-size: 4.5rem;
+  line-height: 0.5;
+  color: var(--accent-ink);
+}
+
 .quote-text {
   margin: 0;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.3rem;
-  line-height: 1.45;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.6875rem;
+  line-height: 1.3;
   white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
+.ornament {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--ornament);
+}
+
+.ornament::before,
+.ornament::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 .quote-author {
@@ -176,72 +292,124 @@ select {
   gap: 0.75rem;
 }
 
+.quote-who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.quote-character {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 1.1;
+}
+
+.quote-actor {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
 .character-badge {
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
-  color: #fff;
+  color: var(--badge-text);
   font-weight: 700;
-  font-size: 0.95rem;
-  border: 2px solid var(--gold);
+  font-size: 1.0625rem;
 }
 
-.quote-character {
-  flex: 1;
-  font-weight: 700;
+.character-badge.small {
+  width: 1.875rem;
+  height: 1.875rem;
+  font-size: 0.8125rem;
 }
+
+.badge-0 { background: var(--badge-0); }
+.badge-1 { background: var(--badge-1); }
+.badge-2 { background: var(--badge-2); }
+.badge-3 { background: var(--badge-3); }
+.badge-4 { background: var(--badge-4); }
+.badge-5 { background: var(--badge-5); }
 
 .like-button {
-  min-width: 3rem;
-  min-height: 2.75rem;
-  padding: 0 0.75rem;
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 4rem;
+  height: 2.75rem;
+  padding: 0 0.875rem;
+  color: var(--accent-ink);
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 999px;
-  cursor: pointer;
+  font-weight: 600;
 }
 
 .like-button[aria-pressed='true'] {
-  background: var(--accent);
   color: var(--accent-text);
+  background: var(--accent);
   border-color: var(--accent);
 }
 
-.quote-details {
-  display: grid;
-  gap: 0.25rem;
+.quote-episode {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
-.quote-details div {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.quote-details dt {
-  min-width: 4.5rem;
-}
-
-.quote-details dd {
-  margin: 0;
-  color: var(--text);
-}
-
 .clip-button {
-  justify-self: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   min-height: 2.75rem;
-  padding: 0 1rem;
-  color: var(--text);
   background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  cursor: pointer;
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.clip-thumbnail {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  overflow: hidden;
+  background: #0b0907;
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+}
+
+.clip-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clip-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: #ffffff;
+  background: rgb(28 23 18 / 82%);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
 }
 
 .clip {
@@ -252,5 +420,271 @@ select {
   width: 100%;
   height: 100%;
   border: 0;
-  border-radius: 0.5rem;
+  border-radius: 6px;
+}
+
+/* Preferences: a bottom sheet (native <dialog>, so focus, Escape and the backdrop come for free). */
+.preferences {
+  width: 100%;
+  max-width: 30rem;
+  max-height: calc(100dvh - 2.5rem);
+  margin: auto auto 0;
+  padding: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 0;
+  border-radius: 20px 20px 0 0;
+}
+
+.preferences[open] {
+  display: flex;
+  animation: sheet-up 0.22s ease-out;
+}
+
+.preferences::backdrop {
+  background: var(--backdrop);
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preferences[open] {
+    animation: none;
+  }
+}
+
+.preferences-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  overflow-y: auto;
+  padding: 0.625rem 1.25rem calc(1.75rem + env(safe-area-inset-bottom));
+}
+
+.sheet-handle {
+  align-self: center;
+  width: 2.5rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--control-border);
+}
+
+.preferences-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preferences-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.75rem;
+}
+
+.text-button {
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  color: var(--accent-ink);
+  background: transparent;
+  border: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.hint {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.875rem;
+  padding: 0 0.875rem;
+  color: var(--muted);
+  background: var(--input-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.text-input {
+  height: 2.875rem;
+  padding: 0 0.875rem;
+  background: var(--input-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+/* Shows about three rows and a half, so the cut-off row says "scroll for more". */
+.character-list {
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.character-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0 0.875rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.character-option:last-child {
+  border-bottom: 0;
+}
+
+.character-option:has(input:checked) {
+  background: var(--surface-selected);
+  font-weight: 600;
+}
+
+.character-option input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.character-name {
+  flex: 1;
+}
+
+.character-count {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.character-empty {
+  margin: 0;
+  padding: 0.875rem;
+  color: var(--muted);
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 3.125rem;
+  height: 1.875rem;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--control-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
+  transition: transform 0.15s;
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::after {
+  transform: translateX(1.25rem);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+}
+
+.segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2.5rem;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.segment:has(input:checked) {
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+}
+
+.segment:has(input:focus-visible) {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}
+
+/* Visually hidden but still read and focusable. */
+.segment input,
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.preferences .primary-button {
+  margin-top: 0.5rem;
 }

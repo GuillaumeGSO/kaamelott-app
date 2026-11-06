@@ -10,7 +10,9 @@ import {
   type Quote,
 } from './api/client';
 import { QuoteQueue } from './quoteQueue';
-import { Filters } from './components/Filters';
+import { applyTheme, loadTheme, saveTheme, type ThemePreference } from './theme';
+import { SlidersIcon } from './components/Icons';
+import { Preferences } from './components/Preferences';
 import { QuoteCard } from './components/QuoteCard';
 
 const ALIAS_STORAGE_KEY = 'kaamelott.alias';
@@ -45,6 +47,10 @@ export default function App() {
   const [liked, setLiked] = useState(false);
   const [status, setStatus] = useState<Status>('loading');
   const [notice, setNotice] = useState<string | null>(null);
+  const [theme, setTheme] = useState(loadTheme);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  // What the quote depends on when the sheet opens: a new quote is fetched on close if it changed.
+  const filtersWhenOpened = useRef('');
 
   const nextQuote = useCallback(async () => {
     // Ignore responses from earlier taps if the user taps again before they arrive.
@@ -83,9 +89,33 @@ export default function App() {
     firstLoad.current();
   }, []);
 
+  useEffect(() => applyTheme(theme), [theme]);
+
   const changeAlias = (value: string) => {
     setAlias(value);
     saveAlias(value);
+  };
+
+  const changeTheme = (value: ThemePreference) => {
+    setTheme(value);
+    saveTheme(value);
+  };
+
+  const filtersKey = [character, favoritesOnly, favoritesOnly ? alias.trim() : ''].join('|');
+
+  const openPreferences = () => {
+    filtersWhenOpened.current = filtersKey;
+    setPreferencesOpen(true);
+  };
+
+  const closePreferences = () => {
+    setPreferencesOpen(false);
+    if (filtersKey !== filtersWhenOpened.current) nextQuote();
+  };
+
+  const resetFilters = () => {
+    setCharacter('');
+    setFavoritesOnly(false);
   };
 
   const toggleLike = async () => {
@@ -105,27 +135,26 @@ export default function App() {
     }
   };
 
+  const subtitle = [character || 'Tous les personnages', favoritesOnly && 'favoris'].filter(Boolean).join(' · ');
+
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Citations Kaamelott</h1>
+        <div className="app-title">
+          <h1>Citations Kaamelott</h1>
+          <span className="app-subtitle">{subtitle}</span>
+        </div>
+        <button
+          className="icon-button"
+          onClick={openPreferences}
+          aria-label="Préférences"
+          aria-haspopup="dialog"
+        >
+          <SlidersIcon />
+        </button>
       </header>
 
-      <Filters
-        characters={characters}
-        character={character}
-        onCharacterChange={setCharacter}
-        alias={alias}
-        onAliasChange={changeAlias}
-        favoritesOnly={favoritesOnly}
-        onFavoritesOnlyChange={setFavoritesOnly}
-      />
-
       <main className="app-main">
-        <button className="next-button" onClick={nextQuote} disabled={status === 'loading'}>
-          Encore une !
-        </button>
-
         {status === 'empty' && <p className="status">Rien trouvé, désolé.</p>}
         {status === 'error' && <p className="status">Impossible de joindre le serveur. Réessaie.</p>}
         {notice && (
@@ -138,6 +167,31 @@ export default function App() {
           <QuoteCard quote={quote} liked={liked} onToggleLike={toggleLike} loading={status === 'loading'} />
         )}
       </main>
+
+      <button className="primary-button next-button" onClick={nextQuote} disabled={status === 'loading'}>
+        Encore une !
+      </button>
+
+      {/* Required by the quotes' license (CC BY-SA 4.0): source, link and license. */}
+      <footer className="credits">
+        Citations issues de <a href="https://fr.wikiquote.org/wiki/Kaamelott">Wikiquote</a>, sous licence{' '}
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr">CC BY-SA 4.0</a>
+      </footer>
+
+      <Preferences
+        open={preferencesOpen}
+        onClose={closePreferences}
+        characters={characters}
+        character={character}
+        onCharacterChange={setCharacter}
+        alias={alias}
+        onAliasChange={changeAlias}
+        favoritesOnly={favoritesOnly}
+        onFavoritesOnlyChange={setFavoritesOnly}
+        theme={theme}
+        onThemeChange={changeTheme}
+        onReset={resetFilters}
+      />
     </div>
   );
 }

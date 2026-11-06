@@ -52,6 +52,7 @@ kaamelott-app/
 - `api/client.ts`: `getCharacters`, `getRandomQuotes(batchSize)`, `getQuoteByCharacter`, `getQuoteByFavorites(alias?, character?)`, `getFavoriteStatus`, `postFavorite`. The `Quote` type matches the API (`actorName`, `youtubeVideoId|null`, `youtubeStartSeconds|null`, `likes`).
 - **Quote queue:** keeps up to 20 random quotes from `batchSize=20` and refills when 5 or fewer are left, so "Encore une !" is instant. This replaces Anvil's server-side cache. Character and favorites modes call the API for each quote.
 - **Screens:** one mobile-first page. The quote card shows the text, character, actor, film/season/episode, a like heart with its count, a "Voir l'extrait" button that loads a `youtube-nocookie.com/embed/<id>?start=<s>` iframe on tap only (light page, nothing loaded from YouTube before then), and the blason or a character initial. Filters (character select, pseudo, favorites toggle) sit in a collapsible top bar. The pseudo is remembered in `localStorage`.
+  *Since redesigned ("Parchemin", 2026-11-06): the filters, the pseudo and a day/night choice moved to a bottom sheet opened from a single header button; see Design in `CLAUDE.md`.*
 - **Ads:** an `<AdSlot>` component that renders a placeholder until AdSense is configured (publisher ID via the `VITE_ADSENSE_CLIENT` build var, empty means no ads). No ad script loads before consent. A `/confidentialite` page (privacy policy) is required by AdSense. The consent banner is the CMP built into AdSense, enabled once the account exists.
 - **PWA:** `vite-plugin-pwa` with a manifest (name, icons, theme color) and a service worker caching only the app shell, never API responses.
 - **Tests:** Vitest + Testing Library for the API client (mocked fetch), the quote queue logic and the main interactions (next quote, like without pseudo, empty favorites).
@@ -71,6 +72,7 @@ kaamelott-app/
 1. ✅ Part A in `kamelott-lambda` (branch, PR, deploy staging). Check that a request with the web key returns 200. *Done: PR #4 (branch `web-api-key`), deployed to staging, 200 with the key and 403 without. **Not merged yet.***
 2. ✅ Scaffold in `/Users/guillaume/Repositories/kaamelott-app` (Vite + React + TS, API client, quote queue, tests), `git init`, first commit, then `gh repo create` (public) and push.
 3. ✅ Build the UI (feature parity), with initials badges (no blason: it's not ours either) and responsive layout; checked at phone width against staging.
+   ⏳ Parchemin redesign (day and night themes, preferences sheet), chosen on a Claude Design canvas. *On branch `parchemin-design`, being tested by you; not committed yet.*
 4. ⏳ Infra stack (*written in `infra/`, typechecks and synthesizes; not deployed yet*), then the first deploy from local with `AWS_PROFILE=kaamelott`. Check the CloudFront URL on a phone.
 5. CI workflows, plus the IAM role (you run it), then a deploy-staging run from GitHub.
 6. PWA manifest and service worker, `<AdSlot>` placeholders, privacy page.
@@ -79,6 +81,6 @@ kaamelott-app/
 ## Verification
 - `npm test` and `npm run build` pass locally and in GitHub Actions.
 - `curl https://<cloudfront>/characters` returns 200 **without** any key; the response headers and the JS bundle contain no `x-api-key` (grep `dist/`).
-- **In Chrome at phone size** (Claude in Chrome): first quote shows, "Encore une !" is instant (queue), the character filter works, setting a pseudo and liking toggles the heart and the count, the favorites filter returns the liked quote, and "Voir l'extrait" opens YouTube at the right second.
+- **In Chrome at phone size** (Claude in Chrome): first quote shows, "Encore une !" is instant (queue), the character filter works (search included), day/night follows the phone and the Apparence choice, setting a pseudo and liking toggles the heart and the count, the favorites filter returns the liked quote, and "Voir l'extrait" opens YouTube at the right second.
 - **Lighthouse (mobile):** PWA installable, performance acceptable.
 - Usage plan metrics in API Gateway show traffic on `kaamelott-web-staging`, not on the Anvil key.
