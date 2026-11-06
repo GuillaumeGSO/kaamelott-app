@@ -1,4 +1,4 @@
-// Typed client for the Kaamelott quotes API (kamelott-lambda).
+// Typed client for the Kaamelott quotes API (kaamelott-lambda).
 // URLs are relative: in production CloudFront serves the API on the same origin and adds
 // the x-api-key header; in development the Vite proxy does the same (see vite.config.ts).
 

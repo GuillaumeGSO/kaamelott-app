@@ -8,7 +8,7 @@ import type { Construct } from 'constructs';
 
 export interface WebStackProps extends cdk.StackProps {
   environment: 'staging' | 'prod';
-  /** API Gateway host of the kamelott-lambda REST API, e.g. abc123.execute-api.eu-west-3.amazonaws.com */
+  /** API Gateway host of the kaamelott-lambda REST API, e.g. abc123.execute-api.eu-west-3.amazonaws.com */
   apiDomain: string;
   /** API Gateway stage name, used as the origin path */
   apiStage: string;

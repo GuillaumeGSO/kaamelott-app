@@ -19,7 +19,7 @@ interface PreferencesProps {
   onReset: () => void;
 }
 
-// Matches the API limit on aliases (MAX_ALIAS_LENGTH in kamelott-lambda).
+// Matches the API limit on aliases (MAX_ALIAS_LENGTH in kaamelott-lambda).
 const MAX_ALIAS_LENGTH = 20;
 
 const THEMES = [

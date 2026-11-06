@@ -4,7 +4,7 @@ Mobile-first web app for quotes from the French series [Kaamelott](https://fr.wi
 
 Quotes come from [Wikiquote](https://fr.wikiquote.org/wiki/Kaamelott) (CC BY-SA 4.0); the app credits it on every page.
 
-Built with Vite, React and TypeScript. It's the frontend of the API in [kamelott-lambda](https://github.com/GuillaumeGSO/kamelott-lambda).
+Built with Vite, React and TypeScript. It's the frontend of the API in [kaamelott-lambda](https://github.com/GuillaumeGSO/kaamelott-lambda).
 
 ## How it talks to the API
 

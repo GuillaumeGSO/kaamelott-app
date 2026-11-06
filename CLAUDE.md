@@ -1,7 +1,8 @@
 # kaamelott-app — notes for Claude
 
 Mobile-first web frontend (Vite + React 19 + TypeScript 7) for the Kaamelott quotes API in the
-sibling repo `../kamelott-lambda` (GitHub: GuillaumeGSO/kamelott-lambda). It replaces an Anvil app
+sibling repo `../kamelott-lambda` (GitHub: GuillaumeGSO/kaamelott-lambda, renamed from
+kamelott-lambda; the local folder still has the old name). It replaces an Anvil app
 ("Kamelott Citations") that isn't phone-friendly and can't carry ads.
 
 Goal: PWA first, ready for Google AdSense, later wrapped as a native app (Capacitor + AdMob).
@@ -18,7 +19,7 @@ browser ──► CloudFront (infra/, one distribution per env)
                     → API Gateway (origin path /<stage>) + origin header x-api-key
 ```
 - The API key never reaches the browser. It's the dedicated `kaamelott-web-<env>` key, whose
-  value lives in Secrets Manager as `kaamelott-web-api-key-<env>` (created by kamelott-lambda),
+  value lives in Secrets Manager as `kaamelott-web-api-key-<env>` (created by kaamelott-lambda),
   with its own usage plan (50k/day, 20 rps, burst 40).
 - Dev server: `vite.config.ts` proxies the same paths and adds `KAAMELOTT_API_KEY` (see README).
 - Don't use CloudFront custom error responses for SPA routing: they would also turn the API's
@@ -45,7 +46,7 @@ night = warm near-black, brick red.
 - Pictures come only from official YouTube uploads: a quote's clip (official Kaamelott channel) shows
   its thumbnail (`i.ytimg.com/vi/<id>/mqdefault.jpg`, player loaded on tap). Film quotes have no clip:
   `TRAILERS` in `src/components/QuoteCard.tsx` maps a film to its trailer, from @KaamelottOfficiel only
-  (the user's rule): Premier Volet has only a teaser there. No change needed in kamelott-lambda.
+  (the user's rule): Premier Volet has only a teaser there. No change needed in kaamelott-lambda.
 - Fonts (Cormorant Garamond, Source Sans 3) are self-hosted with `@fontsource`, latin subset: no
   request to Google Fonts (privacy, ad consent).
 
@@ -64,7 +65,7 @@ night = warm near-black, brick red.
 ## Status (2026-11-06)
 
 Done:
-1. kamelott-lambda branch `web-api-key`, **PR #4 open**: web API key + secret + usage plan.
+1. kaamelott-lambda branch `web-api-key`, **PR #4 open**: web API key + secret + usage plan.
    Already deployed to staging from that branch; works (200 with key, 403 without).
    Still needs merging into main.
 2. This repo, initial commit pushed: API client (`src/api/client.ts`), quote queue

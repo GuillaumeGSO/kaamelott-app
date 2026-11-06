@@ -5,7 +5,7 @@ import { WebStack } from '../lib/web-stack';
 
 const REGION = 'eu-west-3';
 
-// The kamelott-lambda REST API is looked up by name (kaamelott-api-<env>) at synth time,
+// The kaamelott-lambda REST API is looked up by name (kaamelott-api-<env>) at synth time,
 // so no API endpoint is committed. Needs AWS credentials, e.g. AWS_PROFILE=kaamelott.
 async function findApiDomain(name: string): Promise<string> {
   const client = new APIGatewayClient({ region: REGION });
@@ -31,8 +31,8 @@ async function main() {
     },
     environment: env,
     apiDomain: await findApiDomain(`kaamelott-api-${env}`),
-    apiStage: env, // kamelott-lambda deploys each env to a stage of the same name
-    // Created by kamelott-lambda (WebApiKeySecret); CloudFront sends it as x-api-key.
+    apiStage: env, // kaamelott-lambda deploys each env to a stage of the same name
+    // Created by kaamelott-lambda (WebApiKeySecret); CloudFront sends it as x-api-key.
     apiKeySecretName: `kaamelott-web-api-key-${env}`,
   });
 }
