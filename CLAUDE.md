@@ -1,9 +1,8 @@
 # kaamelott-app — notes for Claude
 
 Mobile-first web frontend (Vite + React 19 + TypeScript 7) for the Kaamelott quotes API in the
-sibling repo `../kamelott-lambda` (GitHub: GuillaumeGSO/kaamelott-lambda, renamed from
-kamelott-lambda; the local folder still has the old name). It replaces an Anvil app
-("Kamelott Citations") that isn't phone-friendly and can't carry ads.
+sibling repo `../kaamelott-lambda` (GitHub: GuillaumeGSO/kaamelott-lambda). It replaces an Anvil app
+("Kaamelott Citations") that isn't phone-friendly and can't carry ads.
 
 Goal: PWA first, ready for Google AdSense, later wrapped as a native app (Capacitor + AdMob).
 Character pictures are initials badges on purpose: no Wikipedia photos (copyright risk with ads).
@@ -84,7 +83,7 @@ Next steps:
    and a 404 from `/quotes/by-favorites` stays JSON (not HTML).
 5. CI: `.github/workflows/test.yml` (on every push: `npm ci`, lint, test, build) and
    `deploy-staging.yml` (manual, `environment: staging`, OIDC). Copy the patterns from
-   `../kamelott-lambda/.github/workflows/`. Needs an IAM role `kaamelott-app-github-deploy-staging`
+   `../kaamelott-lambda/.github/workflows/`. Needs an IAM role `kaamelott-app-github-deploy-staging`
    trusted for `repo:GuillaumeGSO/kaamelott-app:environment:staging`, allowed to assume the
    `cdk-hnb659fds-{deploy,file-publishing,lookup}-role-022153972216-eu-west-3` roles.
    Auto mode blocks IAM permission grants: give the user the command to run.

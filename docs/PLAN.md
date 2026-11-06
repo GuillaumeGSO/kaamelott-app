@@ -3,7 +3,7 @@
 > Plan approved on 2026-11-05. Progress is marked in **Order of work** (✅ done, ⏳ in progress). Implementation notes and gotchas are in `CLAUDE.md`.
 
 ## Context
-Today's frontend is an Anvil app ("Kamelott Citations", app YOJZWX7ZCPQGTC6I). It isn't phone-friendly and can't carry Google ads. The goal is a new public repo, **GuillaumeGSO/kaamelott-app**, holding a web frontend that is mobile-first and installable (PWA) and ready for Google AdSense. It's hosted in the `kaamelott` AWS account (022153972216, eu-west-3) and calls the existing API from `kaamelott-lambda`. It should be web first and wrappable as a native app (Capacitor + AdMob) later.
+Today's frontend is an Anvil app ("Kaamelott Citations", app YOJZWX7ZCPQGTC6I). It isn't phone-friendly and can't carry Google ads. The goal is a new public repo, **GuillaumeGSO/kaamelott-app**, holding a web frontend that is mobile-first and installable (PWA) and ready for Google AdSense. It's hosted in the `kaamelott` AWS account (022153972216, eu-west-3) and calls the existing API from `kaamelott-lambda`. It should be web first and wrappable as a native app (Capacitor + AdMob) later.
 
 Decisions taken: PWA first, native later · domain decided later (needed before applying to AdSense) · **CloudFront adds the API key server-side** · blason/initials instead of Wikipedia photos · Vite + React + TypeScript.
 
