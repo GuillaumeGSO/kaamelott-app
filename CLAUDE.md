@@ -79,15 +79,15 @@ Done:
    passed on to the CDK app, which needs credentials to look up the API). Checked: page and SPA
    routes load, `/characters` 200 without a key, no `x-api-key` in `dist/`, a 404 from
    `/quotes/by-favorites?character=Zzznobody` stays JSON.
+5. CI (PR #2 merged): `.github/workflows/test.yml` (every push: lint, test, build, infra
+   typecheck) and `deploy-staging.yml` (manual, `environment: staging`, OIDC). First GitHub deploy
+   green on 2026-11-06, site rechecked. IAM role `kaamelott-app-github-deploy-staging` may assume
+   the `cdk-hnb659fds-{deploy,file-publishing,lookup}-role-022153972216-eu-west-3` roles and
+   `apigateway:GET` on `/restapis` (`infra/bin/app.ts` looks the API up with the role's own
+   credentials, not the lookup role). The backend role `kaamelott-github-deploy-staging` got the
+   same trust fix but hasn't been tested from GitHub since.
 
 Next steps:
-5. CI, branch `ci`: `.github/workflows/test.yml` (every push: lint, test, build, infra typecheck)
-   and `deploy-staging.yml` (manual, `environment: staging`, OIDC). Needs the IAM role
-   `kaamelott-app-github-deploy-staging` (the user creates it: auto mode blocks IAM grants),
-   trusted for `repo:GuillaumeGSO/kaamelott-app:environment:staging`, allowed to assume the
-   `cdk-hnb659fds-{deploy,file-publishing,lookup}-role-022153972216-eu-west-3` roles and
-   `apigateway:GET` on `/restapis` (`infra/bin/app.ts` looks the API up with the role's own
-   credentials, not the lookup role). Then run the workflow once and recheck the SiteUrl.
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
    calls), an `<AdSlot>` placeholder component (`VITE_ADSENSE_CLIENT`, empty = no ads, no ad script
    before consent), and a `/confidentialite` privacy page.
@@ -105,4 +105,9 @@ Next steps:
 - Like/unlike tests against staging write real favorites: use a test pseudo and remove the like.
 - jsdom has `<dialog>` but no `showModal`/`close`: `src/test/setup.ts` adds minimal versions.
 - The user may already have a dev server on port 5173: use another port, don't kill theirs.
+- GitHub OIDC tokens use immutable subjects on both repos: `sub` is
+  `repo:GuillaumeGSO@35000004/<repo>@<repo id>:environment:<env>` (prefix from
+  `gh api repos/GuillaumeGSO/<repo>/actions/oidc/customization/sub`), not `repo:GuillaumeGSO/<repo>:...`.
+  IAM trust policies list both forms. Auto mode blocks IAM changes: give the user the commands.
+- In zsh, `$1:e` is a modifier (extension): write `${1}:environment` in heredocs.
 - Commit messages end with the Co-Authored-By line; the user approves commits and pushes.
