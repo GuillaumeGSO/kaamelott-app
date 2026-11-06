@@ -10,14 +10,8 @@ export interface Quote {
   film?: string | null;
   season?: string | null;
   episode?: string | null;
-  likes: number;
   youtubeVideoId?: string | null;
   youtubeStartSeconds?: number | null;
-}
-
-export interface CharacterCount {
-  character: string;
-  numberOfQuotes: number;
 }
 
 export class ApiError extends Error {
@@ -45,41 +39,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-// A 404 from the quote endpoints means "nothing matches", not a failure.
-async function quoteOrNull(path: string): Promise<Quote | null> {
-  try {
-    return await request<Quote>(path);
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return null;
-    throw error;
-  }
-}
-
-export function getCharacters(): Promise<CharacterCount[]> {
-  return request<CharacterCount[]>('/characters');
-}
-
-export async function getRandomQuotes(batchSize: number): Promise<Quote[]> {
-  const body = await request<{ quotes: Quote[] }>(`/quotes/random?batchSize=${batchSize}`);
+// The whole set (~1,000 quotes), loaded once: random picks and filters happen in the browser.
+// CloudFront caches it, so most visits never reach the API.
+export async function getAllQuotes(): Promise<Quote[]> {
+  const body = await request<{ quotes: Quote[] }>('/quotes/all');
   return body.quotes;
 }
 
-export function getQuoteByCharacter(character: string): Promise<Quote | null> {
-  return quoteOrNull(`/quotes/by-character/${encodeURIComponent(character)}`);
+// Like counts of every liked quote (cached a few minutes by CloudFront).
+export async function getLikes(): Promise<Record<string, number>> {
+  const body = await request<{ likes: Record<string, number> }>('/quotes/likes');
+  return body.likes;
 }
 
-export function getQuoteByFavorites(alias?: string, character?: string): Promise<Quote | null> {
-  const params = new URLSearchParams();
-  if (alias) params.set('alias', alias);
-  if (character) params.set('character', character);
-  const query = params.toString();
-  return quoteOrNull(`/quotes/by-favorites${query ? `?${query}` : ''}`);
-}
-
-export async function getFavoriteStatus(quoteId: string, alias: string): Promise<boolean> {
-  const params = new URLSearchParams({ quoteId, alias });
-  const body = await request<{ liked: boolean }>(`/favorites/status?${params}`);
-  return body.liked;
+// The quotes liked by a pseudo: one call instead of a status check per quote.
+export async function getFavorites(alias: string): Promise<string[]> {
+  const body = await request<{ quoteIds: string[] }>(`/favorites?${new URLSearchParams({ alias })}`);
+  return body.quoteIds;
 }
 
 export async function postFavorite(quoteId: string, alias: string, favorite: boolean): Promise<number> {

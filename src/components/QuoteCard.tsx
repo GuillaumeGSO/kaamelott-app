@@ -5,6 +5,7 @@ import { YouTubeClip } from './YouTubeClip';
 
 interface QuoteCardProps {
   quote: Quote;
+  likes: number;
   liked: boolean;
   onToggleLike: () => void;
   loading: boolean;
@@ -28,7 +29,7 @@ function episodeLine(quote: Quote): string {
   return [film, quote.season, quote.episode].filter(Boolean).join(' · ');
 }
 
-export function QuoteCard({ quote, liked, onToggleLike, loading }: QuoteCardProps) {
+export function QuoteCard({ quote, likes, liked, onToggleLike, loading }: QuoteCardProps) {
   const episode = episodeLine(quote);
   const trailer = quote.youtubeVideoId ? undefined : trailerFor(quote.film);
 
@@ -55,7 +56,7 @@ export function QuoteCard({ quote, liked, onToggleLike, loading }: QuoteCardProp
           aria-pressed={liked}
           aria-label={liked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
         >
-          <HeartIcon filled={liked} /> {quote.likes}
+          <HeartIcon filled={liked} /> {likes}
         </button>
       </div>
 

@@ -1,12 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import {
-  ApiError,
-  getFavoriteStatus,
-  getQuoteByCharacter,
-  getQuoteByFavorites,
-  getRandomQuotes,
-  postFavorite,
-} from './client';
+import { ApiError, getAllQuotes, getFavorites, getLikes, postFavorite } from './client';
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -14,42 +7,25 @@ const json = (status: number, body: unknown) =>
 const mockFetch = (response: Response) => vi.spyOn(globalThis, 'fetch').mockResolvedValue(response);
 
 describe('api client', () => {
-  test('getRandomQuotes requests a batch and unwraps the quotes', async () => {
+  test('getAllQuotes unwraps the quotes', async () => {
     const fetchSpy = mockFetch(json(200, { quotes: [{ quoteId: 'q1' }] }));
 
-    expect(await getRandomQuotes(20)).toEqual([{ quoteId: 'q1' }]);
-    expect(fetchSpy).toHaveBeenCalledWith('/quotes/random?batchSize=20', undefined);
+    expect(await getAllQuotes()).toEqual([{ quoteId: 'q1' }]);
+    expect(fetchSpy).toHaveBeenCalledWith('/quotes/all', undefined);
   });
 
-  test('getQuoteByCharacter encodes the character name', async () => {
-    const fetchSpy = mockFetch(json(200, { quoteId: 'q1' }));
+  test('getLikes unwraps the counts', async () => {
+    const fetchSpy = mockFetch(json(200, { likes: { q1: 2 } }));
 
-    await getQuoteByCharacter('Anna de Tintagel');
-    expect(fetchSpy).toHaveBeenCalledWith('/quotes/by-character/Anna%20de%20Tintagel', undefined);
+    expect(await getLikes()).toEqual({ q1: 2 });
+    expect(fetchSpy).toHaveBeenCalledWith('/quotes/likes', undefined);
   });
 
-  test('quote lookups return null on 404', async () => {
-    mockFetch(json(404, { error: 'Character not found' }));
+  test('getFavorites encodes the pseudo and returns the liked quote ids', async () => {
+    const fetchSpy = mockFetch(json(200, { alias: 'Dame du Lac', quoteIds: ['q1', 'q2'] }));
 
-    expect(await getQuoteByCharacter('Personne')).toBeNull();
-  });
-
-  test('getQuoteByFavorites only sends the parameters that are set', async () => {
-    const fetchSpy = mockFetch(json(200, { quoteId: 'q1' }));
-
-    await getQuoteByFavorites(undefined, 'Perceval');
-    expect(fetchSpy).toHaveBeenCalledWith('/quotes/by-favorites?character=Perceval', undefined);
-
-    fetchSpy.mockResolvedValue(json(200, { quoteId: 'q1' }));
-    await getQuoteByFavorites();
-    expect(fetchSpy).toHaveBeenLastCalledWith('/quotes/by-favorites', undefined);
-  });
-
-  test('getFavoriteStatus returns the liked flag', async () => {
-    const fetchSpy = mockFetch(json(200, { quoteId: 'q1', alias: 'merlin', liked: true }));
-
-    expect(await getFavoriteStatus('q1', 'merlin')).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledWith('/favorites/status?quoteId=q1&alias=merlin', undefined);
+    expect(await getFavorites('Dame du Lac')).toEqual(['q1', 'q2']);
+    expect(fetchSpy).toHaveBeenCalledWith('/favorites?alias=Dame+du+Lac', undefined);
   });
 
   test('postFavorite sends the favorite and returns the like count', async () => {
@@ -65,7 +41,7 @@ describe('api client', () => {
   test('errors carry the status and the API error message', async () => {
     mockFetch(json(400, { error: 'alias must be at most 20 characters' }));
 
-    await expect(getFavoriteStatus('q1', 'x'.repeat(30))).rejects.toMatchObject({
+    await expect(getFavorites('x'.repeat(30))).rejects.toMatchObject({
       status: 400,
       message: 'alias must be at most 20 characters',
     });
@@ -74,8 +50,8 @@ describe('api client', () => {
   test('non-JSON errors (API Gateway Forbidden) still raise an ApiError', async () => {
     mockFetch(new Response('Forbidden', { status: 403 }));
 
-    const error = await getRandomQuotes(20).catch(e => e);
+    const error = await getAllQuotes().catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
-    expect(error.status).toBe(403);
+    expect((error as ApiError).status).toBe(403);
   });
 });

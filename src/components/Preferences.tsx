@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CharacterCount } from '../api/client';
+import type { CharacterCount } from '../quoteDeck';
 import type { ThemePreference } from '../theme';
 import { CharacterBadge } from './CharacterBadge';
 import { MoonIcon, PhoneIcon, SearchIcon, SunIcon } from './Icons';

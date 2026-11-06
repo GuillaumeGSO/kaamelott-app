@@ -19,7 +19,17 @@ export interface WebStackProps extends cdk.StackProps {
 const DIST_DIR = path.join(__dirname, '..', '..', 'dist');
 
 // Paths served by the API rather than the static site. Keep in sync with src/api/client.ts.
-const API_PATH_PATTERNS = ['/quotes/*', '/characters', '/favorites', '/favorites/*'];
+const API_PATH_PATTERNS = ['/quotes/*', '/favorites', '/favorites/*'];
+
+// API responses shared by every visitor, cached at the edge: this is what keeps API Gateway
+// (billed per call) and the usage plan quota out of the way of ordinary visits. Listed before
+// the API patterns above, since CloudFront picks the first behavior that matches.
+const CACHED_API_PATHS = {
+  // Quotes change only when kaamelott-lambda reloads them.
+  '/quotes/all': cdk.Duration.days(1),
+  // Like counts: a few minutes behind is fine (a visitor's own likes update locally).
+  '/quotes/likes': cdk.Duration.minutes(5),
+};
 
 export class WebStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: WebStackProps) {
@@ -67,12 +77,19 @@ function handler(event) {
       originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
     };
 
-    // The character list changes only when quotes are reloaded: cache it briefly at the edge.
-    const charactersCachePolicy = new cloudfront.CachePolicy(this, 'CharactersCachePolicy', {
-      cachePolicyName: `kaamelott-app-characters-${environment}`,
-      defaultTtl: cdk.Duration.minutes(5),
-      minTtl: cdk.Duration.seconds(0),
-      maxTtl: cdk.Duration.minutes(5),
+    const cachedApiBehaviors = Object.entries(CACHED_API_PATHS).map(([pattern, ttl]) => {
+      const name = pattern.slice(1).replace(/\W+/g, '-'); // '/quotes/all' → 'quotes-all'
+      const cachePolicy = new cloudfront.CachePolicy(this, `CachePolicy-${name}`, {
+        cachePolicyName: `kaamelott-app-${name}-${environment}`,
+        // Fixed TTL whatever the API's own Cache-Control says (that one is for browsers).
+        defaultTtl: ttl,
+        minTtl: ttl,
+        maxTtl: ttl,
+        // Cache key: the path only. Gzip/Brotli let CloudFront compress (quotes: 380 KB → ~100 KB).
+        enableAcceptEncodingGzip: true,
+        enableAcceptEncodingBrotli: true,
+      });
+      return [pattern, { ...apiBehavior, allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD, cachePolicy }] as const;
     });
 
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
@@ -86,14 +103,10 @@ function handler(event) {
         responseHeadersPolicy: cloudfront.ResponseHeadersPolicy.SECURITY_HEADERS,
         functionAssociations: [{ function: spaRewrite, eventType: cloudfront.FunctionEventType.VIEWER_REQUEST }],
       },
-      additionalBehaviors: Object.fromEntries(
-        API_PATH_PATTERNS.map(pattern => [
-          pattern,
-          pattern === '/characters'
-            ? { ...apiBehavior, allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD, cachePolicy: charactersCachePolicy }
-            : apiBehavior,
-        ]),
-      ),
+      additionalBehaviors: Object.fromEntries([
+        ...cachedApiBehaviors,
+        ...API_PATH_PATTERNS.map(pattern => [pattern, apiBehavior] as const),
+      ]),
     });
 
     // Hashed build assets never change: cache them for a year. Everything else (index.html,
