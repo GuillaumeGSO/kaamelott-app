@@ -81,12 +81,13 @@ Done:
    `/quotes/by-favorites?character=Zzznobody` stays JSON.
 
 Next steps:
-5. CI: `.github/workflows/test.yml` (on every push: `npm ci`, lint, test, build) and
-   `deploy-staging.yml` (manual, `environment: staging`, OIDC). Copy the patterns from
-   `../kaamelott-lambda/.github/workflows/`. Needs an IAM role `kaamelott-app-github-deploy-staging`
+5. CI, branch `ci`: `.github/workflows/test.yml` (every push: lint, test, build, infra typecheck)
+   and `deploy-staging.yml` (manual, `environment: staging`, OIDC). Needs the IAM role
+   `kaamelott-app-github-deploy-staging` (the user creates it: auto mode blocks IAM grants),
    trusted for `repo:GuillaumeGSO/kaamelott-app:environment:staging`, allowed to assume the
-   `cdk-hnb659fds-{deploy,file-publishing,lookup}-role-022153972216-eu-west-3` roles.
-   Auto mode blocks IAM permission grants: give the user the command to run.
+   `cdk-hnb659fds-{deploy,file-publishing,lookup}-role-022153972216-eu-west-3` roles and
+   `apigateway:GET` on `/restapis` (`infra/bin/app.ts` looks the API up with the role's own
+   credentials, not the lookup role). Then run the workflow once and recheck the SiteUrl.
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
    calls), an `<AdSlot>` placeholder component (`VITE_ADSENSE_CLIENT`, empty = no ads, no ad script
    before consent), and a `/confidentialite` privacy page.
