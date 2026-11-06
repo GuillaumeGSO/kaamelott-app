@@ -1,15 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  getCharacters,
-  getFavoriteStatus,
-  getQuoteByCharacter,
-  getQuoteByFavorites,
-  getRandomQuotes,
-  postFavorite,
-  type CharacterCount,
-  type Quote,
-} from './api/client';
-import { QuoteQueue } from './quoteQueue';
+import { getAllQuotes, getFavorites, getLikes, postFavorite, type Quote } from './api/client';
+import { QuoteDeck, type CharacterCount } from './quoteDeck';
 import { applyTheme, loadTheme, saveTheme, type ThemePreference } from './theme';
 import { SlidersIcon } from './components/Icons';
 import { Preferences } from './components/Preferences';
@@ -35,16 +26,25 @@ function saveAlias(alias: string) {
 
 type Status = 'loading' | 'ready' | 'empty' | 'error';
 
+// The quotes a pseudo has liked, with the pseudo they belong to.
+interface Favorites {
+  alias: string;
+  ids: Set<string>;
+}
+
 export default function App() {
-  const queue = useRef(new QuoteQueue(getRandomQuotes));
+  const deck = useRef<QuoteDeck | null>(null);
+  // Mirrors the favorites state for the loaders, which must not change on every like.
+  const favoritesRef = useRef<Favorites | null>(null);
   const requestId = useRef(0);
 
   const [characters, setCharacters] = useState<CharacterCount[]>([]);
+  const [likes, setLikes] = useState<Record<string, number>>({});
+  const [favorites, setFavorites] = useState<Favorites | null>(null);
   const [character, setCharacter] = useState('');
   const [alias, setAlias] = useState(loadAlias);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [liked, setLiked] = useState(false);
   const [status, setStatus] = useState<Status>('loading');
   const [notice, setNotice] = useState<string | null>(null);
   const [theme, setTheme] = useState(loadTheme);
@@ -52,40 +52,66 @@ export default function App() {
   // What the quote depends on when the sheet opens: a new quote is fetched on close if it changed.
   const filtersWhenOpened = useRef('');
 
+  // Every quote and like count, fetched once: picks and filters then happen in the browser.
+  // A failure leaves the deck empty, so the next tap retries.
+  const loadDeck = useCallback(async (): Promise<QuoteDeck> => {
+    if (deck.current) return deck.current;
+    // Like counts are only decoration: quotes still show (with 0) if they can't be loaded.
+    const [quotes, counts] = await Promise.all([getAllQuotes(), getLikes().catch(() => ({}))]);
+    deck.current ??= new QuoteDeck(quotes);
+    setLikes(counts);
+    setCharacters(deck.current.characters());
+    return deck.current;
+  }, []);
+
+  // A pseudo's liked quotes, fetched once per pseudo.
+  const loadFavorites = useCallback(async (pseudo: string): Promise<Set<string>> => {
+    if (favoritesRef.current?.alias === pseudo) return favoritesRef.current.ids;
+    const ids = new Set(await getFavorites(pseudo));
+    favoritesRef.current = { alias: pseudo, ids };
+    setFavorites(favoritesRef.current);
+    return ids;
+  }, []);
+
   const nextQuote = useCallback(async () => {
-    // Ignore responses from earlier taps if the user taps again before they arrive.
+    // Ignore results from earlier taps if the user taps again before they arrive.
     const id = ++requestId.current;
     const pseudo = alias.trim();
     setStatus('loading');
     setNotice(null);
     try {
-      let next: Quote | null;
-      if (favoritesOnly) next = await getQuoteByFavorites(pseudo || undefined, character || undefined);
-      else if (character) next = await getQuoteByCharacter(character);
-      else next = await queue.current.next();
+      const quotes = await loadDeck();
+      let liked: Set<string> | null = null;
+      if (pseudo) {
+        try {
+          liked = await loadFavorites(pseudo);
+        } catch (error) {
+          // Only the favorites filter needs them; otherwise the heart just shows as not liked.
+          if (favoritesOnly) throw error;
+        }
+      }
       if (id !== requestId.current) return;
 
+      // Without a pseudo, the favorites are those of everyone: quotes liked at least once.
+      const next = quotes.next(
+        q =>
+          (!character || q.character === character) &&
+          (!favoritesOnly || (liked ? liked.has(q.quoteId) : (likes[q.quoteId] ?? 0) > 0)),
+      );
       if (!next) {
         setStatus('empty');
         return;
       }
       setQuote(next);
-      setLiked(false);
       setStatus('ready');
-
-      if (pseudo) {
-        const isLiked = await getFavoriteStatus(next.quoteId, pseudo);
-        if (id === requestId.current) setLiked(isLiked);
-      }
     } catch {
       if (id === requestId.current) setStatus('error');
     }
-  }, [alias, character, favoritesOnly]);
+  }, [alias, character, favoritesOnly, likes, loadDeck, loadFavorites]);
 
-  // First load only: afterwards the button drives every fetch, as in the original app.
+  // First load only: afterwards the button drives every quote, as in the original app.
   const firstLoad = useRef(nextQuote);
   useEffect(() => {
-    getCharacters().then(setCharacters).catch(() => {});
     firstLoad.current();
   }, []);
 
@@ -110,7 +136,10 @@ export default function App() {
 
   const closePreferences = () => {
     setPreferencesOpen(false);
+    const pseudo = alias.trim();
     if (filtersKey !== filtersWhenOpened.current) nextQuote();
+    // A new pseudo: show whether the current quote is among its likes.
+    else if (pseudo) loadFavorites(pseudo).catch(() => {});
   };
 
   const resetFilters = () => {
@@ -127,13 +156,21 @@ export default function App() {
     }
     setNotice(null);
     try {
-      const likes = await postFavorite(quote.quoteId, pseudo, !liked);
-      setLiked(!liked);
-      setQuote({ ...quote, likes });
+      const ids = await loadFavorites(pseudo);
+      const like = !ids.has(quote.quoteId);
+      const count = await postFavorite(quote.quoteId, pseudo, like);
+      const updated = new Set(ids);
+      if (like) updated.add(quote.quoteId);
+      else updated.delete(quote.quoteId);
+      favoritesRef.current = { alias: pseudo, ids: updated };
+      setFavorites(favoritesRef.current);
+      setLikes(current => ({ ...current, [quote.quoteId]: count }));
     } catch {
       setNotice("Le like n'est pas passé, réessaie.");
     }
   };
+
+  const liked = !!quote && favorites?.alias === alias.trim() && favorites.ids.has(quote.quoteId);
 
   const subtitle = [character || 'Tous les personnages', favoritesOnly && 'favoris'].filter(Boolean).join(' · ');
 
@@ -164,7 +201,13 @@ export default function App() {
         )}
 
         {quote && status !== 'empty' && status !== 'error' && (
-          <QuoteCard quote={quote} liked={liked} onToggleLike={toggleLike} loading={status === 'loading'} />
+          <QuoteCard
+            quote={quote}
+            likes={likes[quote.quoteId] ?? 0}
+            liked={liked}
+            onToggleLike={toggleLike}
+            loading={status === 'loading'}
+          />
         )}
       </main>
 

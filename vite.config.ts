@@ -2,7 +2,7 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
-const API_PATHS = ['/quotes', '/characters', '/favorites']
+const API_PATHS = ['/quotes', '/favorites']
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {

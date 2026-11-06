@@ -14,12 +14,21 @@ The full approved plan (decisions, architecture, steps, verification) is in `doc
 ```
 browser ──► CloudFront (infra/, one distribution per env)
              ├─ /*  → private S3 bucket (OAC), SPA rewrite via CloudFront Function
-             └─ /quotes/* /characters /favorites /favorites/*
+             ├─ /quotes/all (cached 1 day) /quotes/likes (cached 5 min)
+             └─ /quotes/* /favorites /favorites/*  (not cached)
                     → API Gateway (origin path /<stage>) + origin header x-api-key
 ```
 - The API key never reaches the browser. It's the dedicated `kaamelott-web-<env>` key, whose
   value lives in Secrets Manager as `kaamelott-web-api-key-<env>` (created by kaamelott-lambda),
-  with its own usage plan (50k/day, 20 rps, burst 40).
+  with its own usage plan (staging 5,000/day, prod 10,000/day, 20 rps, burst 40).
+- Cost: API Gateway REST is billed per call, so the app loads data once and works in the browser.
+  At startup: `/quotes/all` (every quote, ~100 KB compressed) and `/quotes/likes` (counts), both
+  cached by CloudFront (`CACHED_API_PATHS` in `infra/lib/web-stack.ts`), plus `GET /favorites?alias=`
+  once per pseudo. `src/quoteDeck.ts` shuffles once and deals the next quote matching the filters
+  (character, favorites). Only like/unlike calls the API afterwards. A visit is ~2 API calls.
+  Don't go back to per-quote endpoints (`/quotes/random`, `/by-character`, `/by-favorites`,
+  `/favorites/status`): they still exist for other clients, not for this app.
+- Favorites without a pseudo = quotes liked by anyone (like count > 0), as in the original app.
 - Dev server: `vite.config.ts` proxies the same paths and adds `KAAMELOTT_API_KEY` (see README).
 - Don't use CloudFront custom error responses for SPA routing: they would also turn the API's
   404s ("no favorites found") into index.html. The CloudFront Function handles it instead.
@@ -66,7 +75,7 @@ night = warm near-black, brick red.
 Done:
 1. kaamelott-lambda PR #4 merged: web API key + secret + usage plan (200 with key, 403 without).
 2. This repo, initial commit pushed: API client (`src/api/client.ts`), quote queue
-   (`src/quoteQueue.ts`), UI (`src/App.tsx`, `src/components/`), 23 tests (Vitest).
+   (since replaced by `src/quoteDeck.ts`, see 5b), UI (`src/App.tsx`, `src/components/`), 23 tests (Vitest).
    Checked in Chrome at phone width against staging: quotes, filters, like/unlike,
    favorites, "Rien trouvé".
 3. `infra/` CDK stack (`infra/lib/web-stack.ts`).
@@ -85,7 +94,13 @@ Done:
    the `cdk-hnb659fds-{deploy,file-publishing,lookup}-role-022153972216-eu-west-3` roles and
    `apigateway:GET` on `/restapis` (`infra/bin/app.ts` looks the API up with the role's own
    credentials, not the lookup role). The backend role `kaamelott-github-deploy-staging` got the
-   same trust fix but hasn't been tested from GitHub since.
+   same trust fix; its GitHub deploy was rerun on 2026-11-06 and is green.
+5b. Cost cut (2026-11-06): quotes loaded once, edge-cached (see Architecture). kaamelott-lambda
+   branch `cacheable-endpoints` (`/quotes/all`, `/quotes/likes`, `GET /favorites`, web quota
+   staging 5,000 / prod 10,000), this repo branch `client-side-quotes`. Both deployed to staging
+   from local, **not committed yet**; curl-checked (CloudFront Miss then Hit, quotes 382 KB → 97 KB
+   Brotli), 63 backend + 31 app tests. Not yet checked in Chrome. Before prod: deploy the backend
+   first (the new site needs the new endpoints; the old site works with either backend).
 
 Next steps:
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
@@ -99,6 +114,8 @@ Next steps:
 - TypeScript is 7 (native): ts-node doesn't work, so the CDK app runs with `tsx` (`infra/cdk.json`).
   Typecheck infra with `./node_modules/.bin/tsc -p infra` from the repo root.
 - `infra/` is its own npm package (CDK deps kept out of the app). Run `npm install` in both.
+- Ask before every deploy, staging included (local `cdk deploy` or a GitHub deploy run).
+- App tests mock `Math.random` to 0.9999 (`src/App.test.tsx`): the deck then keeps the API order.
 - The user's shell is zsh: don't name a loop variable `path` (it's tied to `$PATH`).
 - The Chrome window can't be resized (full screen). To test at phone width, load the app in a
   390px-wide iframe on the same origin.

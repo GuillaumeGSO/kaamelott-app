@@ -8,10 +8,12 @@ Built with Vite, React and TypeScript. It's the frontend of the API in [kaamelot
 
 ## How it talks to the API
 
-The app calls the API on its own origin (`/quotes/*`, `/characters`, `/favorites`). The API key is **never** in the browser:
+The app calls the API on its own origin (`/quotes/*`, `/favorites`). The API key is **never** in the browser:
 
 - **In production**, CloudFront serves the site and forwards those paths to API Gateway, adding the `x-api-key` header. The key is the dedicated `kaamelott-web-<env>` key, stored in Secrets Manager as `kaamelott-web-api-key-<env>`.
 - **In development**, the Vite dev server proxies the same paths and adds the key from the `KAAMELOTT_API_KEY` environment variable.
+
+To keep API calls (and the bill) low, the app loads every quote once (`/quotes/all`, about 100 KB compressed) and the like counts (`/quotes/likes`). It then picks random quotes and applies the character and favorites filters in the browser. CloudFront caches both responses (1 day and 5 minutes), so most visits never reach the API. A pseudo's likes come from one `GET /favorites?alias=` call. After that, only liking or unliking calls the API.
 
 ## Development
 

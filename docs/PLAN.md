@@ -2,6 +2,8 @@
 
 > Plan approved on 2026-11-05. Progress is marked in **Order of work** (✅ done, ⏳ in progress). Implementation notes and gotchas are in `CLAUDE.md`.
 
+> **Changed since (2026-11-06), to cut API costs:** the app no longer calls the API per quote (no quote queue, `/characters`, `/quotes/random`, `/by-character`, `/by-favorites` or `/favorites/status`). It loads `/quotes/all` and `/quotes/likes` once, both cached by CloudFront, and a pseudo's likes with `GET /favorites?alias=`; picks and filters happen in the browser (`src/quoteDeck.ts`). Web quota: 5,000/day on staging, 10,000 on prod. Details in `CLAUDE.md` (Architecture). The sections below describe the original plan.
+
 ## Context
 Today's frontend is an Anvil app ("Kaamelott Citations", app YOJZWX7ZCPQGTC6I). It isn't phone-friendly and can't carry Google ads. The goal is a new public repo, **GuillaumeGSO/kaamelott-app**, holding a web frontend that is mobile-first and installable (PWA) and ready for Google AdSense. It's hosted in the `kaamelott` AWS account (022153972216, eu-west-3) and calls the existing API from `kaamelott-lambda`. It should be web first and wrappable as a native app (Capacitor + AdMob) later.
 
