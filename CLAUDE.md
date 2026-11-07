@@ -70,7 +70,7 @@ night = warm near-black, brick red.
   user promotes them. Don't deploy the frontend to prod before that, and don't promote prod
   quotes without the user's go-ahead.
 
-## Status (2026-11-06)
+## Status (2026-11-07)
 
 Done:
 1. kaamelott-lambda PR #4 merged: web API key + secret + usage plan (200 with key, 403 without).
@@ -95,16 +95,14 @@ Done:
    `apigateway:GET` on `/restapis` (`infra/bin/app.ts` looks the API up with the role's own
    credentials, not the lookup role). The backend role `kaamelott-github-deploy-staging` got the
    same trust fix; its GitHub deploy was rerun on 2026-11-06 and is green.
-5b. Cost cut (2026-11-06): quotes loaded once, edge-cached (see Architecture). kaamelott-lambda
-   branch `cacheable-endpoints` (`/quotes/all`, `/quotes/likes`, `GET /favorites`, web quota
-   staging 5,000 / prod 10,000), this repo branch `client-side-quotes`. Both deployed to staging
-   from local, **not committed yet**; curl-checked (CloudFront Miss then Hit, quotes 382 KB → 97 KB
-   Brotli), 63 backend + 31 app tests. Not yet checked in Chrome. Before prod: deploy the backend
-   first (the new site needs the new endpoints; the old site works with either backend).
-5c. Pact contract tests (see README), branch `pact` in both repos, not committed yet. Verified
-   locally: 4 interactions OK, and renaming `quoteIds` makes `pact:verify` fail. Push the site
-   first (the API's Pact verify reads the site's `pact` branch contract); merge the API first (the
-   site's Deploy staging runs kaamelott-lambda `main`'s `pact:verify`).
+5b. Cost cut (2026-11-06): quotes loaded once, edge-cached (see Architecture). Merged in both
+   repos (kaamelott-lambda `/quotes/all`, `/quotes/likes`, `GET /favorites`, web quota staging
+   5,000 / prod 10,000; this repo PR #3) and deployed to staging. Curl-checked (CloudFront Miss
+   then Hit, quotes 382 KB → 97 KB Brotli); not checked in Chrome yet. Before prod: deploy the
+   backend first (the new site needs the new endpoints; the old site works with either backend).
+5c. Pact contract tests (see README), merged in both repos (2026-11-07). The API's Pact verify
+   is green on `main` against the site's `main` contract (its first push run failed as expected:
+   the API was merged before the site, so there was no contract on the site's `main` yet).
 
 Next steps:
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
