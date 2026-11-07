@@ -101,6 +101,10 @@ Done:
    from local, **not committed yet**; curl-checked (CloudFront Miss then Hit, quotes 382 KB → 97 KB
    Brotli), 63 backend + 31 app tests. Not yet checked in Chrome. Before prod: deploy the backend
    first (the new site needs the new endpoints; the old site works with either backend).
+5c. Pact contract tests (see README), branch `pact` in both repos, not committed yet. Verified
+   locally: 4 interactions OK, and renaming `quoteIds` makes `pact:verify` fail. Push the site
+   first (the API's Pact verify reads the site's `pact` branch contract); merge the API first (the
+   site's Deploy staging runs kaamelott-lambda `main`'s `pact:verify`).
 
 Next steps:
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
@@ -115,6 +119,10 @@ Next steps:
   Typecheck infra with `./node_modules/.bin/tsc -p infra` from the repo root.
 - `infra/` is its own npm package (CDK deps kept out of the app). Run `npm install` in both.
 - Ask before every deploy, staging included (local `cdk deploy` or a GitHub deploy run).
+- Pact (README, Contract tests): changing an API call means updating `src/api/client.pact.ts`,
+  running `npm run pact:publish` and committing `pacts/` (CI fails otherwise). kaamelott-lambda
+  verifies it (`npm run pact:verify`): from the site's `main`, plus a same-named site branch. Both
+  Deploy staging workflows run the check first; a real Pact Broker / `can-i-deploy` is out of scope.
 - App tests mock `Math.random` to 0.9999 (`src/App.test.tsx`): the deck then keeps the API order.
 - The user's shell is zsh: don't name a loop variable `path` (it's tied to `$PATH`).
 - The Chrome window can't be resized (full screen). To test at phone width, load the app in a
