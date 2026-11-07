@@ -34,6 +34,24 @@ jobs:
 
       - run: npm test
 
+      # can-i-deploy: the API on main must honour the contract of the site about to be deployed.
+      # kaamelott-lambda is public, so no token is needed to check it out.
+      - run: npm run pact:publish
+
+      - uses: actions/checkout@v5
+        with:
+          repository: GuillaumeGSO/kaamelott-lambda
+          ref: main
+          path: api
+
+      - run: npm ci
+        working-directory: api
+
+      - run: npm run pact:verify
+        working-directory: api
+        env:
+          PACT_URLS: ${{ github.workspace }}/pacts/kaamelott-app-kaamelott-lambda.json
+
       - run: npm run build # the stack uploads dist/
 
       - run: npm ci

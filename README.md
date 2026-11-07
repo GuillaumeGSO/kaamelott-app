@@ -33,13 +33,31 @@ npm run lint    # oxlint
 npm run build   # type-check and production build in dist/
 ```
 
+## Contract tests (Pact)
+
+The site and the API live in two repos. [Pact](https://docs.pact.io/) checks that they still agree. The site is the **consumer**: it writes a contract, the list of requests it sends and the response shapes it relies on. The API ([kaamelott-lambda](https://github.com/GuillaumeGSO/kaamelott-lambda)) is the **provider**: it verifies that contract against its real handlers. There's no Pact Broker: the contract is a committed file, read from GitHub.
+
+- `src/api/client.pact.ts` runs the real client functions against Pact's mock server, one interaction per API call.
+- `npm run pact:publish` runs it and writes `pacts/kaamelott-app-kaamelott-lambda.json`. It's kept out of `npm test`.
+- **Commit `pacts/` whenever it changes.** The Tests workflow regenerates it and fails if the committed copy differs.
+- kaamelott-lambda's **Pact verify** workflow checks the contract on this repo's `main`, and the one on a site branch with the same name as the API branch. Work on same-named branches in both repos to get them verified together.
+- **Deploy staging** first checks that the API on `main` honours the contract about to be deployed (the equivalent of Pact's `can-i-deploy`).
+
+To check a contract change locally against a local API checkout:
+
+```bash
+npm run pact:publish
+cd ../kaamelott-lambda
+PACT_URLS=../kaamelott-app/pacts/kaamelott-app-kaamelott-lambda.json npm run pact:verify
+```
+
 ## Deploy
 
 The site is a CDK stack in `infra/` (its own npm package): a private S3 bucket behind CloudFront, which also forwards the API paths with the key. One stack per environment, `kaamelott-app-<env>`.
 
 ### Staging from GitHub
 
-Actions → **Deploy staging** → **Run workflow** runs lint, tests and build, then `cdk deploy kaamelott-app-staging`. Every push also runs the **Tests** workflow (lint, tests, build, infra typecheck).
+Actions → **Deploy staging** → **Run workflow** runs lint, tests, the Pact check and the build, then `cdk deploy kaamelott-app-staging`. Every push also runs the **Tests** workflow (lint, tests, build, infra typecheck).
 
 The workflow authenticates with GitHub OIDC (no stored AWS keys). It assumes the `kaamelott-app-github-deploy-staging` IAM role, which trusts only this repo's `staging` GitHub environment and may only use the CDK bootstrap roles and list the REST APIs (to find `kaamelott-api-<env>` by name).
 

@@ -4,6 +4,9 @@ on:
   push:
     branches: ['**']
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,6 +26,19 @@ jobs:
       - run: npm run lint
 
       - run: npm test
+
+      # Pact contract with kaamelott-lambda: regenerate it and fail if the committed copy differs,
+      # since kaamelott-lambda verifies the committed file (see README, Contract tests).
+      - run: npm run pact:publish
+
+      - name: Contract committed and up to date
+        run: |
+          # status (not diff) so a contract that was never committed fails too
+          if [ -n "$(git status --porcelain pacts/)" ]; then
+            git status --short pacts/
+            echo "::error::pacts/ is out of date: run npm run pact:publish and commit it"
+            exit 1
+          fi
 
       - run: npm run build
 

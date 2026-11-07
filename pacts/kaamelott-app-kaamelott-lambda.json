@@ -1,0 +1,241 @@
+{
+  "consumer": {
+    "name": "kaamelott-app"
+  },
+  "interactions": [
+    {
+      "description": "a like on a quote",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "quote q1 exists"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "alias": "merlin",
+            "favorite": true,
+            "quoteId": "q1"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/favorites"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "likes": 1
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.likes": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for every quote",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "quotes exist"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/quotes/all"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "quotes": [
+              {
+                "character": "Perceval",
+                "quoteId": "q1",
+                "text": "C'est pas faux."
+              }
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.quotes": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.quotes[*].character": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.quotes[*].quoteId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.quotes[*].text": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for the like counts",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "quote q1 has 2 likes"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/quotes/likes"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "likes": {
+              "q1": 2
+            }
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.likes": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for the quotes liked by a pseudo",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "merlin has liked quote q1"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/favorites",
+        "query": {
+          "alias": [
+            "merlin"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "quoteIds": [
+              "q1"
+            ]
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.quoteIds": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.1.4"
+    },
+    "pactRust": {
+      "ffi": "0.5.8",
+      "models": "1.3.16"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "kaamelott-lambda"
+  }
+}
