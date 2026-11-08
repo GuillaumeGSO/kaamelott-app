@@ -28,6 +28,11 @@ browser ──► CloudFront (infra/, one distribution per env)
   (character, favorites). Only like/unlike calls the API afterwards. A visit is ~2 API calls.
   Don't go back to per-quote endpoints (`/quotes/random`, `/by-character`, `/by-favorites`,
   `/favorites/status`): they still exist for other clients, not for this app.
+- Quotes reload: kaamelott-lambda's `load-quotes` publishes `QuotesReloaded` on the account's default
+  EventBridge bus (`source: kaamelott.quotes`, `detail: {environment, count}`; schema in its README).
+  `infra/lib/web-stack.ts` has a rule (filtered on its own environment: staging and prod share the bus)
+  and a small Lambda that invalidates `/quotes/all`. The API doesn't know about the site: keep it that
+  way (no site stack name or distribution id in kaamelott-lambda). Browsers still keep `/quotes/all` 1 h.
 - Favorites without a pseudo = quotes liked by anyone (like count > 0), as in the original app.
 - Dev server: `vite.config.ts` proxies the same paths and adds `KAAMELOTT_API_KEY` (see README).
 - Don't use CloudFront custom error responses for SPA routing: they would also turn the API's
