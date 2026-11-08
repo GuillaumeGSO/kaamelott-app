@@ -62,7 +62,7 @@ When kaamelott-lambda reloads the quotes, it publishes `QuotesReloaded` on the a
 
 - **Like counts read every like.** `/quotes/likes` scans the favorites table (one row per pseudo and liked quote) and counts in the Lambda. The response stays small, but the read grows with the number of likes: negligible below ~100,000, too slow around a million. The fix would be a counter per quote, updated with each like.
 - **A reload never deletes a quote** that was removed from the source file.
-- **No end-to-end test** (Playwright) and no front-end error tracking yet.
+- **Smoke tests run only locally** (Playwright, see below): not in CI yet. No front-end error tracking yet.
 - **Not live in prod yet:** prod still has the old quote format.
 
 ## Development
@@ -81,7 +81,28 @@ npm run dev
 npm test        # Vitest + Testing Library
 npm run lint    # oxlint
 npm run build   # type-check and production build in dist/
+npm run smoke   # Playwright smoke tests (see below)
 ```
+
+## Smoke tests (Playwright)
+
+A few critical paths in a real browser (phone-sized Chrome) against the **real staging API**: a quote and the license credits show, "Encore une !", a deep link, the character filter, like then unlike. Unit tests (Vitest) fake the API and Pact checks the shapes; this checks that the assembled site works.
+
+```bash
+npm run smoke                        # starts the dev server on :5174 (needs .env), runs headless
+npm run smoke:ui                     # UI mode in a browser tab: pick tests, watch them, time-travel
+npm run smoke -- --headed            # watch the browser
+npm run smoke -- --debug             # step through with the inspector
+npm run smoke -- -g "like"           # only tests whose title matches
+BASE_URL=https://<site> npm run smoke   # against a deployed site (no dev server)
+npx playwright show-report           # last run's report, with traces of failed tests
+npm run smoke:codegen -- localhost:5173   # click around a running dev server, it writes the code
+```
+
+- They use your installed **Google Chrome** (`channel: 'chrome'`): Playwright no longer ships its own Chromium for macOS 13. The CLI tools don't read the config, hence the scripts: `codegen` needs `--channel chrome`, UI mode and the trace viewer open in a browser tab (`--ui-port 0`, `npx playwright show-trace -p 0 <trace.zip>`).
+- `e2e/fixtures.ts` holds the page object (`AppPage`, the app's locators and actions) and the fixtures. Specs are grouped by feature in `e2e/*.spec.ts`. Vitest ignores `e2e/`.
+- The like test writes real favorites with the pseudo **`smoke-test`**. The `smokeFavorites` fixture removes its likes before and after the test, so a crashed run is cleaned up by the next one.
+- Failures can come from staging itself (API down, quotes reloaded): that's what a smoke test is for.
 
 ## Contract tests (Pact)
 

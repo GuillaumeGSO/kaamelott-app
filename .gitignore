@@ -29,3 +29,9 @@ infra/cdk.context.json
 
 # Local env (holds the API key)
 .env
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
