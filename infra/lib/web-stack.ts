@@ -164,6 +164,8 @@ exports.handler = async (event) => {
       description: "kaamelott-lambda reloaded this environment's quotes",
       // staging and prod share the account's default bus: only this environment's reloads.
       eventPattern: {
+        account: [this.account],
+        region: [this.region],
         source: ['kaamelott.quotes'],
         detailType: ['QuotesReloaded'],
         detail: { environment: [environment] },
