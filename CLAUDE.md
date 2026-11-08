@@ -20,7 +20,7 @@ browser ──► CloudFront (infra/, one distribution per env)
 ```
 - The API key never reaches the browser. It's the dedicated `kaamelott-web-<env>` key, whose
   value lives in Secrets Manager as `kaamelott-web-api-key-<env>` (created by kaamelott-lambda),
-  with its own usage plan (staging 5,000/day, prod 10,000/day, 20 rps, burst 40).
+  with its own usage plan (staging 1,000/day, prod 5,000/day, 20 rps, burst 40).
 - Cost: API Gateway REST is billed per call, so the app loads data once and works in the browser.
   At startup: `/quotes/all` (every quote, ~100 KB compressed) and `/quotes/likes` (counts), both
   cached by CloudFront (`CACHED_API_PATHS` in `infra/lib/web-stack.ts`), plus `GET /favorites?alias=`
@@ -96,8 +96,8 @@ Done:
    credentials, not the lookup role). The backend role `kaamelott-github-deploy-staging` got the
    same trust fix; its GitHub deploy was rerun on 2026-11-06 and is green.
 5b. Cost cut (2026-11-06): quotes loaded once, edge-cached (see Architecture). Merged in both
-   repos (kaamelott-lambda `/quotes/all`, `/quotes/likes`, `GET /favorites`, web quota staging
-   5,000 / prod 10,000; this repo PR #3) and deployed to staging. Curl-checked (CloudFront Miss
+   repos (kaamelott-lambda `/quotes/all`, `/quotes/likes`, `GET /favorites`, web quota, since lowered:
+   see Architecture; this repo PR #3) and deployed to staging. Curl-checked (CloudFront Miss
    then Hit, quotes 382 KB → 97 KB Brotli); not checked in Chrome yet. Before prod: deploy the
    backend first (the new site needs the new endpoints; the old site works with either backend).
 5c. Pact contract tests (see README), merged in both repos (2026-11-07). The API's Pact verify
