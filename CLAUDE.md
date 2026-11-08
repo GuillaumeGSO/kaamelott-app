@@ -121,7 +121,9 @@ Done:
 
 Next steps:
 5e. Remaining quick wins, on staging: a README "Design decisions and limits" section, then a
-   Playwright smoke test. Prod is deployed only once all of this is done on staging (the user's
+   Playwright smoke test, then a per-IP rate limit (AWS WAF on CloudFront; to design: pay-as-you-go
+   ~$6/month per env vs a CloudFront flat-rate plan, and a CloudFront web ACL lives in us-east-1).
+   Prod is deployed only once all of this is done on staging (the user's
    call): backend first, locally with `export ALARM_EMAIL=...`, then confirm the new subscription.
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
    calls), an `<AdSlot>` placeholder component (`VITE_ADSENSE_CLIENT`, empty = no ads, no ad script
