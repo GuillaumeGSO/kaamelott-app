@@ -22,7 +22,7 @@ This is a first version (MVP): 1,028 quotes, no users yet. It's built to be chea
 ### Load every quote once, filter in the browser
 
 - **Why:** API Gateway REST is billed per call. One cached `/quotes/all` instead of one call per quote brings a visit down to about 2 API calls. Picking and filtering 1,000 quotes in the browser takes microseconds.
-- **Limit:** the payload grows with the catalogue: 424 KB raw (~97 KB Brotli) today, ~4 MB at 10,000 quotes (slow first load on a phone). It fails hard at about 14,500 quotes: a Lambda's synchronous response can't exceed 6 MB, and it isn't compressed until CloudFront.
+- **Limit:** the payload grows with the catalogue: 382 KB raw (~97 KB Brotli) today, ~4 MB at 10,000 quotes (slow first load on a phone). It fails hard at about 15,000 quotes: a Lambda's synchronous response can't exceed 6 MB (the JSON body is escaped inside it, about 10% larger), and it isn't compressed until CloudFront.
 - **Next:** past 2,000–3,000 quotes, publish the quotes as a content-hashed static file in S3 (`quotes.<hash>.json`, cached forever). That takes Lambda, API Gateway, DynamoDB reads and the 6 MB limit out of the path. Beyond that: a small index plus quote chunks, kept on the device in IndexedDB.
 
 ### Caching, and how a reload gets through
@@ -67,7 +67,7 @@ When kaamelott-lambda reloads the quotes, it publishes `QuotesReloaded` on the a
 
 ## Development
 
-Prerequisites: Node.js 24+, and the AWS CLI with the `kaamelott` SSO profile (to read the staging key).
+Prerequisites: Node.js 24+, and the AWS CLI with the `kaamelott` SSO profile (to look up the staging API URL and key).
 
 ```bash
 npm install
@@ -94,11 +94,12 @@ npm run smoke:ui                     # UI mode in a browser tab: pick tests, wat
 npm run smoke -- --headed            # watch the browser
 npm run smoke -- --debug             # step through with the inspector
 npm run smoke -- -g "like"           # only tests whose title matches
-BASE_URL=https://<site> npm run smoke   # against a deployed site (no dev server)
+BASE_URL=<staging url> npm run smoke   # smoke-test staging from your machine (no dev server)
 npx playwright show-report           # last run's report, with traces of failed tests
 npm run smoke:codegen -- localhost:5173   # click around a running dev server, it writes the code
 ```
 
+- **Staging from your machine:** `<staging url>` above is the `SiteUrl` output of the `kaamelott-app-staging` stack (CloudFormation console, or printed at the end of `cdk deploy`).
 - They use your installed **Google Chrome** (`channel: 'chrome'`): Playwright no longer ships its own Chromium for macOS 13. The CLI tools don't read the config, hence the scripts: `codegen` needs `--channel chrome`, UI mode and the trace viewer open in a browser tab (`--ui-port 0`, `npx playwright show-trace -p 0 <trace.zip>`).
 - `e2e/fixtures.ts` holds the page object (`AppPage`, the app's locators and actions) and the fixtures. Specs are grouped by feature in `e2e/*.spec.ts`. Vitest ignores `e2e/`.
 - The like test writes real favorites with the pseudo **`smoke-test`**. The `smokeFavorites` fixture removes its likes before and after the test, so a crashed run is cleaned up by the next one.
@@ -128,7 +129,7 @@ The site is a CDK stack in `infra/` (its own npm package): a private S3 bucket b
 
 ### Staging from GitHub
 
-Actions → **Deploy staging** → **Run workflow** runs lint, tests, the Pact check and the build, then `cdk deploy kaamelott-app-staging`. Every push also runs the **Tests** workflow (lint, tests, build, infra typecheck).
+Actions → **Deploy staging** → **Run workflow** runs lint, tests, the Pact check and the build, then `cdk deploy kaamelott-app-staging`. Every push also runs the **Tests** workflow (lint, tests, Pact contract up to date, build, infra typecheck).
 
 The workflow authenticates with GitHub OIDC (no stored AWS keys). It assumes the `kaamelott-app-github-deploy-staging` IAM role, which trusts only this repo's `staging` GitHub environment and may only use the CDK bootstrap roles and list the REST APIs (to find `kaamelott-api-<env>` by name).
 
