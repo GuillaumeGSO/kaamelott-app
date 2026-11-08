@@ -10,6 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "smoke": "playwright test",
+    "smoke:ui": "playwright test --ui-port 0",
+    "smoke:codegen": "playwright codegen --channel chrome --device \"Pixel 9\"",
     "pact:publish": "rm -rf pacts && vitest run --config vitest.pact.config.ts"
   },
   "dependencies": {
@@ -20,6 +23,7 @@
   },
   "devDependencies": {
     "@pact-foundation/pact": "^17.1.4",
+    "@playwright/test": "^1.65.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",

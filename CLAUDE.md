@@ -121,8 +121,11 @@ Done:
 
 Next steps:
 5e. Remaining quick wins, on staging: a README "Design decisions and limits" section, then a
-   Playwright smoke test, then a per-IP rate limit (AWS WAF on CloudFront; to design: pay-as-you-go
-   ~$6/month per env vs a CloudFront flat-rate plan, and a CloudFront web ACL lives in us-east-1).
+   Playwright smoke test (`e2e/`, `npm run smoke`, local only: CI to discuss with the user later;
+   direction: a job in `test.yml` building the PR, `vite preview` with the proxy, two repo secrets,
+   a pseudo per run, not a required check at first), then a per-IP rate limit (AWS WAF on
+   CloudFront; to design: pay-as-you-go ~$6/month per env vs a CloudFront flat-rate plan, and a
+   CloudFront web ACL lives in us-east-1).
    Prod is deployed only once all of this is done on staging (the user's
    call): backend first, locally with `export ALARM_EMAIL=...`, then confirm the new subscription.
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
@@ -146,6 +149,13 @@ Next steps:
 - The Chrome window can't be resized (full screen). To test at phone width, load the app in a
   390px-wide iframe on the same origin.
 - Like/unlike tests against staging write real favorites: use a test pseudo and remove the like.
+  The Playwright smoke tests use `smoke-test`; the `smokeFavorites` fixture clears it before and after.
+- Playwright: `playwright.config.ts` uses the installed Chrome (`channel: 'chrome'`): Playwright 1.65
+  has no Chromium build for this Mac (macOS 13). The CLI tools ignore the config: use
+  `npm run smoke:codegen` (`--channel chrome`) and `npm run smoke:ui` (`--ui-port 0`, browser tab),
+  never `npx playwright install`. Its dev server runs on 5174. Vitest excludes `e2e/`
+  (its default include matches `*.spec.ts`), and oxlint turns `rules-of-hooks` off there (the fixture
+  callback is named `use`).
 - jsdom has `<dialog>` but no `showModal`/`close`: `src/test/setup.ts` adds minimal versions.
 - The user may already have a dev server on port 5173: use another port, don't kill theirs.
 - GitHub OIDC tokens use immutable subjects on both repos: `sub` is
