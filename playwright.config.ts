@@ -1,9 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // Smoke tests (e2e/): a real browser against the real staging API. See README, Smoke tests.
-// By default Playwright starts the dev server on 5173, which
+// By default Playwright starts the dev server on 5174 (5173 may be taken by your own), which
 // proxies the API with the key from .env. Set BASE_URL to test a deployed site instead.
-const baseURL = process.env.BASE_URL ?? 'http://localhost:5173'
+const baseURL = process.env.BASE_URL ?? 'http://localhost:5174'
 
 export default defineConfig({
   testDir: 'e2e',
@@ -25,7 +25,7 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'npm run dev -- --port 5173 --strictPort',
+        command: 'npm run dev -- --port 5174 --strictPort',
         url: baseURL,
         reuseExistingServer: true,
       },
