@@ -2,6 +2,9 @@ import * as path from 'node:path';
 import * as cdk from 'aws-cdk-lib';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import type { Construct } from 'constructs';
@@ -125,6 +128,47 @@ function handler(event) {
       prune: false,
       distribution,
       distributionPaths: ['/*'],
+    });
+
+    // kaamelott-lambda announces a quotes reload with an event (its README has the schema): drop
+    // the cached /quotes/all then, instead of serving the old quotes for up to a day. The API
+    // doesn't know about this site; only this stack may invalidate its own distribution.
+    const invalidateQuotes = new lambda.Function(this, 'InvalidateQuotesOnReload', {
+      functionName: `kaamelott-app-invalidate-quotes-${environment}`,
+      description: 'Invalidates /quotes/all on the site CloudFront when kaamelott-lambda reloads the quotes',
+      runtime: lambda.Runtime.NODEJS_24_X,
+      architecture: lambda.Architecture.ARM_64,
+      timeout: cdk.Duration.seconds(10),
+      environment: { DISTRIBUTION_ID: distribution.distributionId },
+      handler: 'index.handler',
+      code: lambda.Code.fromInline(`
+const { CloudFrontClient, CreateInvalidationCommand } = require('@aws-sdk/client-cloudfront');
+const cloudfront = new CloudFrontClient({});
+
+exports.handler = async (event) => {
+  const { Invalidation } = await cloudfront.send(new CreateInvalidationCommand({
+    DistributionId: process.env.DISTRIBUTION_ID,
+    InvalidationBatch: {
+      // The event id: a retried delivery of the same event is the same invalidation, not a new one.
+      CallerReference: event.id,
+      Paths: { Quantity: 1, Items: ['/quotes/all'] },
+    },
+  }));
+  console.log('Invalidated /quotes/all after reloading', event.detail.count, 'quotes:', Invalidation.Id);
+};`),
+    });
+    distribution.grantCreateInvalidation(invalidateQuotes);
+
+    new events.Rule(this, 'QuotesReloadedRule', {
+      ruleName: `kaamelott-app-quotes-reloaded-${environment}`,
+      description: "kaamelott-lambda reloaded this environment's quotes",
+      // staging and prod share the account's default bus: only this environment's reloads.
+      eventPattern: {
+        source: ['kaamelott.quotes'],
+        detailType: ['QuotesReloaded'],
+        detail: { environment: [environment] },
+      },
+      targets: [new targets.LambdaFunction(invalidateQuotes)],
     });
 
     new cdk.CfnOutput(this, 'SiteUrl', { value: `https://${distribution.distributionDomainName}` });
