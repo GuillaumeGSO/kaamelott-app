@@ -75,7 +75,7 @@ night = warm near-black, brick red.
   user promotes them. Don't deploy the frontend to prod before that, and don't promote prod
   quotes without the user's go-ahead.
 
-## Status (2026-11-07)
+## Status (2026-11-08)
 
 Done:
 1. kaamelott-lambda PR #4 merged: web API key + secret + usage plan (200 with key, 403 without).
@@ -103,13 +103,26 @@ Done:
 5b. Cost cut (2026-11-06): quotes loaded once, edge-cached (see Architecture). Merged in both
    repos (kaamelott-lambda `/quotes/all`, `/quotes/likes`, `GET /favorites`, web quota, since lowered:
    see Architecture; this repo PR #3) and deployed to staging. Curl-checked (CloudFront Miss
-   then Hit, quotes 382 KB → 97 KB Brotli); not checked in Chrome yet. Before prod: deploy the
+   then Hit, quotes 382 KB → 97 KB Brotli), then checked in Chrome on 2026-11-08. Before prod: deploy the
    backend first (the new site needs the new endpoints; the old site works with either backend).
 5c. Pact contract tests (see README), merged in both repos (2026-11-07). The API's Pact verify
    is green on `main` against the site's `main` contract (its first push run failed as expected:
    the API was merged before the site, so there was no contract on the site's `main` yet).
+5d. Quick wins from the project review (`../kaamelott-project-review.md`), 2026-11-08, merged and
+   deployed to staging only:
+   - kaamelott-lambda #12: CloudWatch alarms (API 5XX, 80% of the web quota) emailed through SNS.
+     The address is the `ALARM_EMAIL` repo secret (never committed); test with `set-alarm-state`.
+     Budgets and cost anomaly alerts live in the management account (Organization level).
+   - kaamelott-lambda #13: every Lambda on arm64. Node 26: the user tracks its GA themselves.
+   - kaamelott-lambda #14 + this repo #6: reloaded quotes are served (no Lambda cache, consistent
+     read, retried writes) and `QuotesReloaded` invalidates the site's `/quotes/all` (see
+     Architecture). Checked end to end: event seen in EventBridge, fresh quotes in Chrome. A Copilot
+     autofix on #6 also filters the rule on `account` and `region`.
 
 Next steps:
+5e. Remaining quick wins, on staging: a README "Design decisions and limits" section, then a
+   Playwright smoke test. Prod is deployed only once all of this is done on staging (the user's
+   call): backend first, locally with `export ALARM_EMAIL=...`, then confirm the new subscription.
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
    calls), an `<AdSlot>` placeholder component (`VITE_ADSENSE_CLIENT`, empty = no ads, no ad script
    before consent), and a `/confidentialite` privacy page.
