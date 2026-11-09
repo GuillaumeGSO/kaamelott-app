@@ -21,8 +21,10 @@ export interface WebStackProps extends cdk.StackProps {
 
 const DIST_DIR = path.join(__dirname, '..', '..', 'dist');
 
-// Paths served by the API rather than the static site. Keep in sync with src/api/client.ts.
-const API_PATH_PATTERNS = ['/quotes/*', '/favorites', '/favorites/*'];
+// Uncached paths served by the API rather than the static site: only the ones the app calls, so
+// no other endpoint can use the web key's quota. Keep in sync with src/api/client.ts and the
+// dev proxy in vite.config.ts.
+const API_PATH_PATTERNS = ['/favorites'];
 
 // API responses shared by every visitor, cached at the edge: this is what keeps API Gateway
 // (billed per call) and the usage plan quota out of the way of ordinary visits. Listed before

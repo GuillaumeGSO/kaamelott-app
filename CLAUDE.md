@@ -15,7 +15,7 @@ The full approved plan (decisions, architecture, steps, verification) is in `doc
 browser ──► CloudFront (infra/, one distribution per env)
              ├─ /*  → private S3 bucket (OAC), SPA rewrite via CloudFront Function
              ├─ /quotes/all (cached 1 day) /quotes/likes (cached 5 min)
-             └─ /quotes/* /favorites /favorites/*  (not cached)
+             └─ /favorites  (not cached)
                     → API Gateway (origin path /<stage>) + origin header x-api-key
 ```
 - The API key never reaches the browser. It's the dedicated `kaamelott-web-<env>` key, whose
@@ -28,6 +28,9 @@ browser ──► CloudFront (infra/, one distribution per env)
   (character, favorites). Only like/unlike calls the API afterwards. A visit is ~2 API calls.
   Don't go back to per-quote endpoints (`/quotes/random`, `/by-character`, `/by-favorites`,
   `/favorites/status`): they still exist for other clients, not for this app.
+- CloudFront forwards only those three paths (`CACHED_API_PATHS` and `API_PATH_PATTERNS`), so no
+  other endpoint can use the web quota; any other path gets `index.html`. The dev proxy
+  (`vite.config.ts`) lists the same three. A new API call means adding its path to both.
 - Quotes reload: kaamelott-lambda's `load-quotes` publishes `QuotesReloaded` on the account's default
   EventBridge bus (`source: kaamelott.quotes`, `detail: {environment, count}`; schema in its README).
   `infra/lib/web-stack.ts` has a rule (filtered on its own environment: staging and prod share the bus)
@@ -123,6 +126,9 @@ Done:
    - #8: README "Design decisions and limits" (each choice: why, limit, next step).
    - #9: Playwright smoke tests (`e2e/`, see README, Smoke tests), local only: 5 tests, green
      against the dev server and against staging (`BASE_URL=<staging url> npm run smoke`).
+
+5f (part 1). CloudFront forwards only `/quotes/all`, `/quotes/likes` and `/favorites` (2026-11-09,
+   branch `narrow-api-paths`). Quota and throttle unchanged (the user's call).
 
 Next steps:
 5f. Before prod, on staging: a per-IP rate limit (AWS WAF on CloudFront; to design: pay-as-you-go
