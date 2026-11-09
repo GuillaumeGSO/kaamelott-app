@@ -75,7 +75,7 @@ night = warm near-black, brick red.
   user promotes them. Don't deploy the frontend to prod before that, and don't promote prod
   quotes without the user's go-ahead.
 
-## Status (2026-11-08)
+## Status (2026-11-09)
 
 Done:
 1. kaamelott-lambda PR #4 merged: web API key + secret + usage plan (200 with key, 403 without).
@@ -119,15 +119,18 @@ Done:
      Architecture). Checked end to end: event seen in EventBridge, fresh quotes in Chrome. A Copilot
      autofix on #6 also filters the rule on `account` and `region`.
 
+5e. More quick wins (2026-11-08/09, no deploy needed):
+   - #8: README "Design decisions and limits" (each choice: why, limit, next step).
+   - #9: Playwright smoke tests (`e2e/`, see README, Smoke tests), local only: 5 tests, green
+     against the dev server and against staging (`BASE_URL=<staging url> npm run smoke`).
+
 Next steps:
-5e. Remaining quick wins, on staging: a README "Design decisions and limits" section, then a
-   Playwright smoke test (`e2e/`, `npm run smoke`, local only: CI to discuss with the user later;
-   direction: a job in `test.yml` building the PR, `vite preview` with the proxy, two repo secrets,
-   a pseudo per run, not a required check at first), then a per-IP rate limit (AWS WAF on
-   CloudFront; to design: pay-as-you-go ~$6/month per env vs a CloudFront flat-rate plan, and a
-   CloudFront web ACL lives in us-east-1).
-   Prod is deployed only once all of this is done on staging (the user's
-   call): backend first, locally with `export ALARM_EMAIL=...`, then confirm the new subscription.
+5f. Before prod, on staging: a per-IP rate limit (AWS WAF on CloudFront; to design: pay-as-you-go
+   ~$6/month per env vs a CloudFront flat-rate plan, and a CloudFront web ACL lives in us-east-1).
+   Prod is deployed only once it's done on staging (the user's call): backend first, locally with
+   `export ALARM_EMAIL=...`, then confirm the new subscription.
+   Separately, smoke tests in CI, to discuss with the user (direction: a job in `test.yml` building
+   the PR, `vite preview` with the proxy, two repo secrets, a pseudo per run, not required at first).
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
    calls), an `<AdSlot>` placeholder component (`VITE_ADSENSE_CLIENT`, empty = no ads, no ad script
    before consent), and a `/confidentialite` privacy page.
