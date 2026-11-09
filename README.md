@@ -8,7 +8,7 @@ Built with Vite, React and TypeScript. It's the frontend of the API in [kaamelot
 
 ## How it talks to the API
 
-The app calls the API on its own origin (`/quotes/*`, `/favorites`). The API key is **never** in the browser:
+The app calls the API on its own origin (`/quotes/all`, `/quotes/likes`, `/favorites`; nothing else is forwarded). The API key is **never** in the browser:
 
 - **In production**, CloudFront serves the site and forwards those paths to API Gateway, adding the `x-api-key` header. The key is the dedicated `kaamelott-web-<env>` key, stored in Secrets Manager as `kaamelott-web-api-key-<env>`.
 - **In development**, the Vite dev server proxies the same paths and adds the key from the `KAAMELOTT_API_KEY` environment variable.
@@ -43,8 +43,16 @@ When kaamelott-lambda reloads the quotes, it publishes `QuotesReloaded` on the a
 ### The API key stays at the edge
 
 - **Why:** CloudFront adds `x-api-key` when it forwards the API paths. The key lives in Secrets Manager, and the site has its own usage plan (staging 1,000 calls a day, prod 5,000; 20 requests/s, burst 40). Nothing in the bundle to steal.
-- **Limit:** the key protects the quota, not the data: anyone can call the site's own `/quotes/*` and `/favorites` paths. The quota is shared by every visitor, so one script making uncached calls (likes) can use it up and break the site for everyone until midnight UTC. An alarm emails at 80%.
+- **Limit:** the key protects the quota, not the data: anyone can call the site's own `/quotes/all`, `/quotes/likes` and `/favorites` paths. The quota is shared by every visitor, and `/favorites` isn't cached, so one script calling it in a loop can use it up and break the site for everyone until midnight UTC. An alarm emails at 80%.
 - **Next, before prod** (the one limit not left for later): AWS WAF on CloudFront with a per-IP rate rule, so one caller can't use up everyone's quota.
+- **See the throttle (staging only):** send 100 requests at once to `/favorites`, the uncached path, and count the status codes:
+
+  ```sh
+  seq 100 | xargs -P 100 -I{} curl -s -o /dev/null -w '%{http_code}\n' \
+    "https://<staging-site>.cloudfront.net/favorites?alias=load-test" | sort | uniq -c
+  ```
+
+  Expect a mix of `200`, which reached the API, and `429`, rejected by the throttle (20 requests/s, burst 40; best effort, so the split varies). Each non-429 response uses one of the 1,000 daily staging calls (API Gateway → Usage plans → `kaamelott-web-usage-plan-staging` → Usage). Don't loop it: using up the quota breaks staging until midnight UTC and triggers the 80% alarm.
 
 ### A pseudo instead of accounts
 

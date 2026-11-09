@@ -2,7 +2,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 import { configDefaults } from 'vitest/config'
 
-const API_PATHS = ['/quotes', '/favorites']
+// The API paths the app calls, as forwarded by CloudFront (infra/lib/web-stack.ts).
+const API_PATHS = ['/quotes/all', '/quotes/likes', '/favorites']
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
