@@ -131,10 +131,12 @@ Done:
    branch `narrow-api-paths`). Quota and throttle unchanged (the user's call).
 
 Next steps:
-5f. Before prod, on staging: a per-IP rate limit (AWS WAF on CloudFront; to design: pay-as-you-go
-   ~$6/month per env vs a CloudFront flat-rate plan, and a CloudFront web ACL lives in us-east-1).
-   Prod is deployed only once it's done on staging (the user's call): backend first, locally with
-   `export ALARM_EMAIL=...`, then confirm the new subscription.
+5f. Per-IP rate limit (WAF): **deferred** by the user on 2026-11-12 (learning project, no users yet;
+   the accepted risk and the trigger are in README, The API key stays at the edge). It no longer
+   blocks prod. If it comes back: the user wants the free option, CloudFront's flat-rate Free plan
+   (one plan per distribution, 3 per account), which first needs the two custom cache policies
+   replaced (see README). Prod deploy: backend first, locally with `export ALARM_EMAIL=...`, then
+   confirm the new subscription.
    Separately, smoke tests in CI, to discuss with the user (direction: a job in `test.yml` building
    the PR, `vite preview` with the proxy, two repo secrets, a pseudo per run, not required at first).
 6. PWA (`vite-plugin-pwa`: manifest, icons, service worker caching the app shell only, never API
