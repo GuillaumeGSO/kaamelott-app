@@ -145,6 +145,10 @@ Next steps:
 
 ## Gotchas
 
+- Lambda concurrency is one limit for the whole account, staging and prod together: 1,000 since
+  2026-11-12 (it was 10, the new-account limit; 1,000 is the lowest value Service Quotas accepts).
+  It must stay well above the web usage plan's bursts, or a burst gets 500s instead of 429s.
+  kaamelott-lambda's `kaamelott-lambda-concurrency` alarm emails above 100.
 - TypeScript is 7 (native): ts-node doesn't work, so the CDK app runs with `tsx` (`infra/cdk.json`).
   Typecheck infra with `./node_modules/.bin/tsc -p infra` from the repo root.
 - `infra/` is its own npm package (CDK deps kept out of the app). Run `npm install` in both.

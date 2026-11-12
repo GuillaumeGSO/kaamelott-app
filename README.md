@@ -45,14 +45,14 @@ When kaamelott-lambda reloads the quotes, it publishes `QuotesReloaded` on the a
 - **Why:** CloudFront adds `x-api-key` when it forwards the API paths. The key lives in Secrets Manager, and the site has its own usage plan (staging 1,000 calls a day, prod 5,000; 20 requests/s, burst 40). Nothing in the bundle to steal.
 - **Limit:** the key protects the quota, not the data: anyone can call the site's own `/quotes/all`, `/quotes/likes` and `/favorites` paths. The quota is shared by every visitor, and `/favorites` isn't cached, so one script calling it in a loop can use it up and break the site for everyone until midnight UTC. An alarm emails at 80%.
 - **Next, before prod** (the one limit not left for later): AWS WAF on CloudFront with a per-IP rate rule, so one caller can't use up everyone's quota.
-- **See the throttle (staging only):** send 100 requests at once to `/favorites`, the uncached path, and count the status codes:
+- **See the throttle (staging only):** send 200 requests to `/favorites`, the uncached path, 100 at a time, and count the status codes:
 
   ```sh
-  seq 100 | xargs -P 100 -I{} curl -s -o /dev/null -w '%{http_code}\n' \
+  seq 200 | xargs -P 100 -I{} curl -s -o /dev/null -w '%{http_code}\n' \
     "https://<staging-site>.cloudfront.net/favorites?alias=load-test" | sort | uniq -c
   ```
 
-  Expect a mix of `200`, which reached the API, and `429`, rejected by the throttle (20 requests/s, burst 40; best effort, so the split varies). Each non-429 response uses one of the 1,000 daily staging calls (API Gateway → Usage plans → `kaamelott-web-usage-plan-staging` → Usage). Don't loop it: using up the quota breaks staging until midnight UTC and triggers the 80% alarm.
+  Expect a mix of `200`, which reached the API, and `429`, rejected by the throttle (20 requests/s, burst 40). The throttle is best effort and loose: 100 requests all came back `200`, and 200 gave 175 × `200` and 25 × `429` (2026-11-12). A `500` would mean Lambda refused instead (account concurrency limit, see kaamelott-lambda's README, API logs). Each non-429 response uses one of the 1,000 daily staging calls (API Gateway → Usage plans → `kaamelott-web-usage-plan-staging` → Usage). Don't loop it: using up the quota breaks staging until midnight UTC and triggers the 80% alarm.
 
 ### A pseudo instead of accounts
 
